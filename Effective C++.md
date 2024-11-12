@@ -1,6 +1,4 @@
-# Effective C++
-
-## 条款04：确定对象被使用前已先被初始化
+# 条款04：确定对象被使用前已先被初始化
 
 1. 为内置型对象进行手工初始化，因为C不保证初始化它们；
 
@@ -17,6 +15,7 @@
        ...
    };
    extern FileSystem tfs;
+   
    class Directory { ... };
    Directory::Directory(parms)
    {
@@ -26,11 +25,11 @@
    };
    Diretory tempDir(params);
    ```
-
+   
    除非tfs在tempDir之前先被初始化否则 tempDir 的构造函数会用到尚未初始化的 tfs。但 tfs和 tempDir 是不同的人在不同的时间于不同的源码文件建立起来的，它们是定义于不同编译单元内的non-local static 对象。而C++对“定义于不同的编译单元内的 non-local static对象”的初始化相对次序并无明确定义。
-
+   
    为免除“跨编译单元之初始化次序”问题，请以local static对象替换 non-local static 对象。意思是将每个non-local static 对象搬到自己的专属函数内(该对象在此函数内被声明为static)这些函数返回一个reference 指向它所含的对象。然后用户调用这些函数，而不直接指涉这些对象。换句话说，non-localstatic对象被localstatic对象替换了。示例如下：
-
+   
    ```c++
    class FileSystem { ... };
    FileSystem& tfs()
@@ -52,7 +51,7 @@
    }
    ```
 
-## 条款05：了解 C++ 默默编写并调用哪些函数
+# 条款05：了解 C++ 默默编写并调用哪些函数
 
 1. 如果没有声明任何构造函数,编译器也会为你声明一个 defaut构造函数。
 
@@ -83,7 +82,7 @@
 
 5. 所有这些默认函数都是public且inline；
 
-## 条款06：若不想使用编译器自动生成的函数，就该明确拒绝
+# 条款06：若不想使用编译器自动生成的函数，就该明确拒绝
 
 1. 为驳回编译器自动提供的机能，可将相应的成员函数声明为private 并且不予实现。当客户企图拷贝对象，编译器会阻挠他。如果你不慎在 member 函数或 friend 函数之内那么做，轮到连接器发出抱怨。将连接期错误移至编译期是可能的(愈早侦测出错误愈好)，只要将 copy构造函数和 copy assignment操作符声明为 private就可以办到，但不是在该类自身，而是在一个专门为了阻止 copying 动作而设计的 base class 内。
 
@@ -103,7 +102,7 @@
 
    只要任何人—甚至是member 函数或 friend 函数—尝试拷贝 Derived 对象，编译器便试着生成一个 copy 构造函数和一个 copy assignment操作符，这些函数的“编译器生成版”会尝试调用其   baseclass 的对应兄弟，那些调用会被编译器拒绝，因为其baseclass的拷贝函数是 private。
 
-## 条款07：为多态基类声明 virtual析构函数
+# 条款07：为多态基类声明 virtual析构函数
 
 1. polymorphic(带多态性质的)base classes应该声明一个 virtual 析构函数。如果class 带有任何 virtual函数，它就应该拥有一个 virtual析构函数；
 
@@ -125,12 +124,12 @@
 
    析构函数的运作方式是，最深层派生(mostderived)的那个class其析构函数最先被调用,然后是其每一个base class的析构函数被调用。编译器会在AWOV的 derive classes 的析构函数中创建一个对~AWOV的调用动作，所以你必须为这个函数提供一份定义。如果不这样做，连接器会发出抱怨。
 
-## 条款08：别让异常逃离析构函数
+# 条款08：别让异常逃离析构函数
 
 1. 析构函数绝对不要吐出异常。如果一个被析构函数调用的函数可能抛出异常，析构函数应该捕捉任何异常，然后吞下它们(不传播)或结束程序；
 2. 如果客户需要对某个操作函数运行期间抛出的异常做出反应，那么class应该提供一个普通函数(而非在析构函数中)执行该操作。
 
-## 条款09：绝不在构造和析构过程中调用 virtual函数
+# 条款09：绝不在构造和析构过程中调用 virtual函数
 
 ```c++
 class Transaction
@@ -196,11 +195,11 @@ class BuyTransaction : public Transactionpublic
 
 请注意本例之 BuyTransaction内的private static 函数 createlogString 的运用。是的，比起在成员初值列(member initializationlist)内给予base class 所需数据利用辅助函数创建一个值传给base class构造函数往往比较方便(也比较可读)。令此函数为 static，也就不可能意外指向“初期未成熟之 BuyTransaction 对象内尚未初始化的成员变量”。这很重要，正是因为“那些成员变量处于未定义状态”，所以“在 base class 构造和析构期间调用的 virtual 函数不可下降至 derived classes。
 
-## 条款10：令operator=返回一个reference to *this(左侧对象)
+# 条款10：令operator=返回一个reference to *this(左侧对象)
 
 “左侧对象” 通常是指在 C++ 中的赋值操作符 (`=`) 或者其他二元运算符（如加法 `+`、减法 `-` 等）中，位于左边的操作数对象。
 
-## 条款11：在operator=中处理“自我赋值“
+# 条款11：在operator=中处理“自我赋值“
 
 1. 两个对象只要来自同一个继承体系，它们甚至不需声明为相同类型就可能造成“别名”，因为一个 base class 的reference 或 pointer 可以指向一个 derived class 对象；
 
@@ -264,7 +263,7 @@ class BuyTransaction : public Transactionpublic
 
 3. 确定任何函数如果操作一个以上的对象，而其中多个对象是同一个对象时，其行为仍然正确。
 
-## 条款12：复制对象时勿忘其每一个成分
+# 条款12：复制对象时勿忘其每一个成分
 
 1. Copying函数应该确保复制“对象内的所有成员变量”及“所有base class 成分，即当你编写一个copying函数，请确保(1)复制所有1ocal成员变量，(2)调用所有baseclasses内的适当的copying 函数。
 
@@ -306,7 +305,7 @@ class BuyTransaction : public Transactionpublic
 
 2. 不要尝试以某个 copying函数实现另一个copying函数。应该将共同机能放进第三个函数中（往往是private 而且常被命名为 init），并由两个 coping函数共同调用。
 
-## 条款13：以对象管理资源
+# 条款13：以对象管理资源
 
 ```c++
 class Investment { ... };
@@ -319,7 +318,7 @@ delete pInv;
 
 1. 为防止资源泄漏，在获得资源后立刻放入管理对象，它们在构造函数中获得资源并在析构函数中释放资源。以对象管理资源，也被称为”资源取得时机便是初始化（RALL）；
 
-2. 两个常被使用的RAI classes分别是tr1::sharedptr和autoptr。前者通常是较佳选择,因为其copy行为比较直观。若选择autoptr，复制动作会使它(被复制物)指向 null。
+2. 两个常被使用的RAIl classes分别是tr1::sharedptr和autoptr。前者通常是较佳选择,因为其copy行为比较直观。若选择autoptr，复制动作会使它(被复制物)指向 null。
 
    ```c++
    std::auto_ptr<Investment> pInv(createInvestment());
@@ -331,7 +330,7 @@ delete pInv;
    ...
    ```
 
-## 条款14：在资源管理类中小心 coping 行为
+# 条款14：在资源管理类中小心 coping 行为
 
 并非所有资源都是 heap-based，对那种资源而言，像auto_ptr和tr1::shared_ptr这样的智能指针往往不适合作为资源掌管者(resourcehanders)。既然如此，你需要建立自己的资源管理类:
 
@@ -396,7 +395,7 @@ Lock ml2(ml1);
 
 复制RAII对象必须一并复制它所管理的资源，所以资源的copying行为决定RAII对象的 copying行为。普遍而常见的RAI class copying行为是:抑制copying、施行引用计数法。不过其他行为也都可能被实现。(reference counting)
 
-## 条款15：在资源管理类中提供对原始资源的访问
+# 条款15：在资源管理类中提供对原始资源的访问
 
 1. APIS往往要求访问原始资源(rawresources)，所以每一个RAII class 应该提供一个“取得其所管理之资源”的办法。对原始资源的访问可能经由显式转换或隐式转换；
    1. 显示转换：
@@ -475,12 +474,12 @@ Lock ml2(ml1);
          ```
 2. 一般而言显式转换比较安全但隐式转换对客户比较方便。相较于显式转换，采用隐式转换可能在某些场合发生错误。
 
-## 条款16：成对使用 new和 delete时要采取相同形式
+# 条款16：成对使用 new和 delete时要采取相同形式
 
 1. 如果你在 new表达式中使用[]，必须在相应的 delete表达式中也使用[]；
 2. 如果你在 new表达式中不使用[]，一定不要在相应的 de1ete 表达式中使用[]。
 
-## 条款17: 以独立语句将 newed 对象置入智能指针
+# 条款17: 以独立语句将 newed 对象置入智能指针
 
 int priority();
 
@@ -505,7 +504,7 @@ processWidget(pw, priority());
 
 以独立语句将 newed 对象存储于(置入)智能指针内。如果不这样做，一旦异常被抛出，有可能导致难以察觉的资源泄漏。
 
-## 条款18：让接口容易被正确使用，不易被误用
+# 条款18：让接口容易被正确使用，不易被误用
 
 1. “促进正确使用”的办法包括接口的一致性，以及与内置类型的行为兼容；
 
@@ -528,7 +527,32 @@ processWidget(pw, priority());
    Date d(2, 30, 1995);
    ```
 
+   使用struct:
+
    ```c++
+   struct day
+   {
+   	explicit Day(int d) :val(d) {}
+   	int val;
+   };
+   
+   struct Month { ... }
+   struct Year { ... }
+   
+   class Date
+   {
+       public:
+       	Date(const Month& month, const Day& day, const Year& year);
+       	...
+   };
+   
+   Data d(3, 30, 1995); //invalid
+   Data d(Month(3), Day(30), Year(1995)); //valid
+   ```
+
+   使用class(可以封装数据，比简单实用struct要更好更安全):
+
+   ```
    class Date
    {
        public:
@@ -552,6 +576,8 @@ processWidget(pw, priority());
    
    Date d(Month::Mar(), Day(30), Year(1995));
    ```
+
+   
 
 3. 消除客户的资源管理责任；
 
@@ -585,9 +611,9 @@ processWidget(pw, priority());
 
    返回的那个 tr1::shared ptr可被传递给任何其他DLLS，无需在意"cross-DLLproblem"。这个指向 stock的 tr1::shared ptrs 会追踪记录“当 stock的引用次数变成0时该调用的那个 DLL's delete”
 
-## 条款19：设计 class 犹如设计 type
+# 条款19：设计 class 犹如设计 type
 
-## 条款20：宁以pass-by-reference-to-const替换 pass-by-value
+# 条款20：宁以pass-by-reference-to-const替换 pass-by-value
 
 1. 尽量以 pass-by-reference-to-const替换 pass-by-value。前者通常比较高效，并可避免切割问题(slicing probiem);         
 
@@ -623,7 +649,7 @@ processWidget(pw, priority());
 
 2. 如果窥视 C++编译器的底层，你会发现，references 往往以指针实现出来，因此pass by reference通常意味真正传递的是指针。因此如果你有个对象属于内置类型(例如 int)，pass by value往往比 pass byreference的效率高些。对内置类型而言，当你有机会选择采用 pass-by-value或pass-by-reference-to-const时，选择 pass-by-.value并非没有道理。这个忠告也适用于STL的迭代器和函数对象，因为习惯上它们都被设计为passed by value。
 
-## 条款21：必须返回对象时，别妄想返回其reference
+# 条款21：必须返回对象时，别妄想返回其reference
 
 考虑下面的代码：
 
@@ -700,12 +726,12 @@ class Rational
 
    如果一个 static 不够，或许一个 static array可以，但首先你必须选择array大小n。如果n太小，你可能会耗尽“用以存储函数返回值”的空间，那么情况就回到了我们刚才讨论过的单static 设计。但如果n太大，会因此降低程序效率，因为array内的每一个对象都会在函数第一次被调用时构造完成。那么将消耗n个构造函数和n个析构函数---即使我们所讨论的函数只被调用一次。条款4已经为“在单线程环境中合理返回reference指向一个 local static 对象”提供了一份设计实例。
 
-## 条款22：将成员变量声明为 private
+# 条款22：将成员变量声明为 private
 
 1. 切记将成员变量声明为private。这可赋予客户访问数据的一致性、可细微划分访问控制、允诺约束条件获得保证，并提供class作者以充分的实现弹性。
 2. protected 并不比 public 更具封装性，因为派生类的成员可以直接访问基类的保护成员，但不能直接访问基类的私有成员。对于外部世界来说， 保护成员的行为与私有成员相似；但对于派生类来说，保护成员的行为与公有成员相似。
 
-## 条款23：宁以non-member、non-friend 替换 member 函数
+# 条款23：宁以non-member、non-friend 替换 member 函数
 
 宁可拿 non-member non-friend 函数替换 member 函数。这样做可以增加封装性、裹弹性和机能扩充性：
 
@@ -752,7 +778,7 @@ class Rational
    ...
    ```
 
-## 条款24：若所有参数皆需类型转换，请为此采用non-member函数
+# 条款24：若所有参数皆需类型转换，请为此采用non-member函数
 
 ```c++
 class Rational
@@ -793,14 +819,14 @@ operator* 是否应该成为Rational class 的一个友元函数呢？
 1. 如果你需要为某个函数的所有参数(包括被 this 指针所指的那个隐喻参数)进行类型转换，那么这个函数必须是个non-member。
 2. 如果函数不需要访问类的私有成员，只需要通过公共接口来操作对象，选择非成员函数。如果你希望保持类的封装性，避免直接暴露私有成员，使用非成员函数。如果一个函数必须访问类的私有成员，并且这种访问是必要的，且没有提供返回私有成员的接口，使用友元函数。如果该函数在逻辑上属于类的一部分，但因为需要对两个类进行对称操作而不能成为成员函数，且没有提供返回私有成员的接口，使用友元函数。
 
-## 条款25：考虑写出一个不抛异常的 swap 函数
+# 条款25：考虑写出一个不抛异常的 swap 函数
 
 1. 当std::swap对你的类型效率不高时，提供一个swap成员函数，并确定这个函数不抛出异常；
 2. 如果你提供一个 member swap，也该提供一个non-member swap用来调用前者。对于classes(而非templates)，也请特化 std::swap；
 3. 调用 swap时应针对 std::swap使用 using声明式，然后调用 swap并且不带任何“命名空间资格修饰”；
 4. 为“用户定义类型”进行 std templates 全特化是好的，但千万不要尝试在 std 内加入某些对 std而言全新的东西。
 
-## 条款26：尽可能延后变量定义式的出现时间
+# 条款26：尽可能延后变量定义式的出现时间
 
 1. 尽可能延后变量定义式的出现。这样做可增加程序的清晰度并改善程序效率。“尽可能延后”的真正意义：你不只应该延后变量的定义，直到非得使用该变量的前一刻为止，甚至应该尝试延后这份定义直到能够给它初值实参为止。如果这样，不仅能够避免构造(和析构)非必要对象，还可以避免无意义的 default 构造行为。更深一层说，以“具明显意义之初值”将变量初始化，还可以附带说明变量的目的。
 
@@ -812,7 +838,7 @@ operator* 是否应该成为Rational class 的一个友元函数呢？
 
    如果 classes 的一个赋值成本低于一组构造+析构成本，做法 A大体而言比较高效。尤其当n值很大的时候。否则做法B或许较好。此外做法A造成名称w的作用域(覆盖整个循环)比做法B更大，有时那对程序的可理解性和易维护性造成冲突。因此除非(1)你知道赋值成本比“构造+析构”成本低，(2)你正在处理代码中效率高度敏感(performance-sensitive)的部分，否则你应该使用做法B。
 
-## 条款27：尽置少做转型动作
+# 条款27：尽置少做转型动作
 
 1. 如果可以，尽量避免转型，特别是在注重效率的代码中避免dynamic_casts。如果有个设计需要转型动作，试着发展无需转型的替代设计；
 
@@ -879,7 +905,7 @@ operator* 是否应该成为Rational class 的一个友元函数呢？
 
 3. 宁可使用C++-styie(新式)转型，不要使用旧式转型。前者很容易辨识出来而且也比较有着分门别类的职掌。
 
-## 条款28：避免返回 handles 指向对象内部成分
+# 条款28：避免返回 handles 指向对象内部成分
 
 1. 避免返回handles（包括引用、指针、迭代器）指向对象内部，可防止外部世界修改对象内部，即使返回 const handles（包括引用、指针、迭代器）也是放松封装，因为对象内部对于外部世界仍然具有可读性。遵守这个条款可增加封装性，帮助 const 成员函数的行为像个 const ；
 
@@ -919,7 +945,7 @@ operator* 是否应该成为Rational class 的一个友元函数呢？
 
 3. 这并不意味你绝对不可以让成员函数返回handle，有时候你必须那么做，例如operator[]就允许你“摘采” strings 和 vectors的个别元素，而这些 operator[] 就是返回 references 指向“容器内的数据”(见条款 3)，那些数据会随着容器被销毁而销毁。尽管如此，这样的函数毕竟是例外，不是常态。
 
-## 条款29：为“异常安全”而努力是值得的
+# 条款29：为“异常安全”而努力是值得的
 
 1. 异常安全函数(Exception-safefunctions)即使发生异常也不会泄漏资源或允许任何数据结构败坏。这样的函数区分为三种可能的保证:基本型、强烈型、不抛异常型；
 
@@ -1013,7 +1039,7 @@ operator* 是否应该成为Rational class 的一个友元函数呢？
 
 3. 函数提供的“异常安全保证”通常最高只等于其所调用之各个函数的“异常安全保证”中的最弱者。
 
-## 条款30：透彻了解 inlining 的里里外外
+# 条款30：透彻了解 inlining 的里里外外
 
 有时候虽然编译器有意愿inlining某个函数，还是可能为该函数生成一个函数本体。举个例子，如果程序要取某个inline 函数的地址，编译器通常必须为此函数生成一个outlined函数本体。毕竟编译器哪有能力提出一个指针指向并不存在的函数呢?与此并提的是,编译器通常不对“通过函数指针而进行的调用"实施inlining这意味对 inline 函数的调用有可能被 inlined，也可能不被 inlined，取决于该调用的实施方式:
 
@@ -1081,7 +1107,7 @@ Derived::Derived()
 2. Inline 函数通常一定被置于头文件内,因为大多数建置环境(buildenvironments)在编译过程中进行 inlining，而为了将一个“函数调用”替换为“被调用函数的本体”，编译器必须知道那个函数长什么样子。不要只因为function templates 出现在头文件，就将它们声明为inline，需要考虑成本。
 3. 程序库设计者必须评估“将函数声明为imnline”的冲击:inline函数无法随着程序库的升级而升级。换句话说如果f是程序库内的一个inline函数，客户将“f函数本体”编进其程序中，一旦程序库设计者决定改变，所有用到的客户端程序都必须重新编译。这往往是大家不愿意见到的。然而如果是non-inline函数，一旦它有任何修改，客户端只需重新连接就好，远比重新编译的负担少很多。如果程序库采取动态连接，升级版函数甚至可以不知不觉地被应用程序吸纳。
 
-## 条款31：将文件间的编译依存关系降至最低
+# 条款31：将文件间的编译依存关系降至最低
 
 ```cpp
 #include <string>
@@ -1279,11 +1305,11 @@ class Person
 
 3. 在程序发展过程中使用 Handle classes和 Interface classes 以求实现码有所变化时对其客户带来最小冲击。而当它们导致速度和/或大小差异过于重大以至于 classes 之间的耦合相形之下不成为关键时，就以具象类(concreteclasses)替换Handle classes和Interfaceclasses .
 
-## 条款32：确定你的 public 继承塑模出 is-a 关系
+# 条款32：确定你的 public 继承塑模出 is-a 关系
 
 public 继承意味is-a。适用于base classes身上的每一件事情一定也适用于derived classes 身上，因为每一个 derived class 对象也都是一个 base class 对象。
 
-## 条款33：避免遮掩继承而来的名称
+# 条款33：避免遮掩继承而来的名称
 
 1. Derived classes内的名称会遮掩baseclasses内的名称。在public 继承下从来没有人希望如此；
 2. 为了让被遮掩的名称再见天日，可使用using声明式或转交函数(forwardingfunctions )
@@ -1361,7 +1387,7 @@ class Deried : public Base
 };
 ```
 
-## 条款34：区分接口继承和实现继承
+# 条款34：区分接口继承和实现继承
 
 1. 接口继承和实现继承不同。在public 继承之下,derived classes总是继承 base class的接口；
 
@@ -1481,7 +1507,7 @@ class Deried : public Base
 
 4. non-virtual函数具体指定接口继承以及强制性实现继承，它的意义是不变性(invariant)凌驾特异性(specialization),。
 
-## 条款35：考虑 virtual函数以外的其他选择
+# 条款35：考虑 virtual函数以外的其他选择
 
 假设你正在写一个视频游戏软件，你打算为游戏内的人物设计一个继承体系。你决定提供一个成员函数 healthValue，它会返回一个整数，表示人物的健康程度。由于不同的人物可能以不同的方式计算他们的健康指数，将healthValue声明为 virtual 似乎是再明白不过的做法，但认真考虑以下替代做法：
 
@@ -1600,7 +1626,7 @@ class Deried : public Base
 
 4. 将继承体系内的 virtual函数替换为另一个继承体系内的virtual 函数。这是Strategy 设计模式的传统实现手法。这个解法的吸引力在于，熟悉标准 Strategy模式的人很容易辨认它，而且它还提供“将一个既有的健康算法纳入使用”的可能性--只要为 HealthcalcFunc 继承体系添加一个 derived class 即可。
 
-## 条款36：绝不重新定义继承而来的 non-virtual函数
+# 条款36：绝不重新定义继承而来的 non-virtual函数
 
 绝不重新定义继承而来的 non-virtual函数
 
@@ -1626,7 +1652,7 @@ pD->mf(); //调用D::mf
 
 造成此一两面行为的原因是，non-virtual函数如B::mf和D::mf都是静态绑定statically bound，见条款 37)。这意思是，由于pB被声明为一个 pointer-to-B，通过pB 调用的 non-virtual函数永远是B所定义的版本，即使pB指向一个类型为“B派生之 class”的对象。但另一方面，virtual函数却是动态绑定(dynamicallybound，见条款37)，所以它们不受这个问题之苦。如果 mf是个 virtual 函数,不论是通过 pB或pD调用 mf,都会导致调用 D::mf，因为pB和pD真正指的都是一个类型为D的对象。
 
-## 条款37：绝不重新定义继承而来的缺省参数值
+# 条款37：绝不重新定义继承而来的缺省参数值
 
 绝对不要重新定义一个继承而来的缺省参数值，因为缺省参数值都是静态绑定，而 virtual 函数应该重写的定义却是动态绑定，看下面这个例子：
 
@@ -1689,12 +1715,12 @@ class Rectangle : public Shape
 };
 ```
 
-## 条款38：通过复合塑模出 has-a或"根据某物实现出"
+# 条款38：通过复合塑模出 has-a或"根据某物实现出"
 
 1. 复合的意义和public 继承完全不同；
 2. 在应用域（程序中的对象其实相当于你所塑造的世界中的某些事物，例如人、domains )汽车、一张张视频画面等等，复合意味has-a(有一个)。在实现域（实现细节上的人工制品,像是缓冲区(buffers)、互斥器(mutexes)、查找树(search trees)等等），复合意味 is-implemented-in-terms-of(根据某物实现出)。
 
-## 条款39：明智而审慎地使用 private 继承
+# 条款39：明智而审慎地使用 private 继承
 
 1. Private 继承意味is-implemented-in-termsof(根据某物实现出)。当derived class 需要访问 protected base class 的成员，或需要重新定义继承而来的 virtual函数时，这么设计是合理的，并且private继承可以造成empty base最优化。这对致力于“对象尺寸最小化”的程序库开发者而言，可能很重要。
 
@@ -1741,7 +1767,7 @@ class Rectangle : public Shape
 
    首先，你或许会想设计 widget使它得以拥有 derived classes，但同时你可能会想阻止 derived classes 重新定义 onTick。如果 Widget继承自 Timer，上面的想法就不可能实现，即使是 private 继承也不可能。其次，你或许会想要将widget的编译依存性降至最低。如果widget继承Timer，当 widget 被编译时 Timer的定义必须可见，所以定义 widget 的那个文件恐怕必须#include rimer.h。但如果 Widgetrimer 移出 widget 之外而 widget 内含指针指向一个 widgetrimer，widget 可以只带着一个简单的 widgetTimer 声明式不再需要#include任何与Timer有关的东西。对大型系统而言，如此的解耦(decouplings)可能是重要的措施。关于编译依存性的最小化，详见条款31。
 
-## 条款40：明智而审慎地使用多重继承
+# 条款40：明智而审慎地使用多重继承
 
 1. 多重继承比单一继承复杂。它可能导致新的歧义性，以及对virtual继承的需要;
 
@@ -1837,7 +1863,7 @@ class Rectangle : public Shape
 
    CPerson和 PersonInfo的关系是：PersonInfo刚好有若干函数可帮助 CPerson比较容易实现出来。就这样。它们的关系因此是is-implemented-in-terms-of(根据某物实现出),而我们知道这种关系可以两种技术实现:复合(见条款38)和private继承(见条款 39)。条款39指出复合通常是较受欢迎的做法，但如果需要重新定义virtual函数，那么继承是必要的。本例之中CPerson需要重新定义valueDelimopen和 valueDelimclose，所以单纯的复合无法应付。最直接的解法就是令 CPerson以 private 形式继承 PersonInfo,虽然条款 39 也说过，只要多加点工作，CPerson也可以结合“复合+继承”技术以求有效重新定义PersonInfo的 virtual函数。此处使用 private 继承。
 
-## 条款41：了解隐式接口和编译期多态
+# 条款41：了解隐式接口和编译期多态
 
 1. classes和templates都支持接口(interfaces)和多态(polymorphism）；
 
@@ -1879,7 +1905,7 @@ class Rectangle : public Shape
 
    凡涉及w的任何函数调用,例如operator>和operator!=,有可能造成template具现化(instantiated)，使这些调用得以成功。在编译时，编译器会通过模板具现化来生成具体类型的代码，这些代码在编译期就已经确定。编译器根据实际传入的类型选择合适的模板实例，这就形成了一种在编译期的多态性，不同于传统的运行时多态（如虚函数）。
 
-## 条款42：了解 typename 的双重意义
+# 条款42：了解 typename 的双重意义
 
 1. 声明 template 参数时，前缀关键字 class 和 typename 可互换；
 
@@ -1899,7 +1925,7 @@ class Rectangle : public Shape
    };
    ```
 
-## 条款43：学习处理模板化基类内的名称
+# 条款43：学习处理模板化基类内的名称
 
 ```c++
 class CompanyA
@@ -2008,7 +2034,7 @@ zMsgSender.sendClearMsg(msgData);
 
 其中对 sendclearMsg的调用动作将无法通过编译，因为在那个点上，编译器知道 base class 是个 template 特化版本 MsgSender< companyz >，而且它们知道那个class 不提供 sendclear函数，而后者却是 sendclearMsg 尝试调用的函数。
 
-## 条款44：将与参数无关的代码抽离templates
+# 条款44：将与参数无关的代码抽离templates
 
 1. Templates生成多个 classes 和多个函数,所以任何template 代码都不该与某个造成膨胀的 template 参数产生相依关系；
 
@@ -2064,7 +2090,7 @@ zMsgSender.sendClearMsg(msgData);
 
 3. 因类型参数(typeparameters)而造成的代码膨胀，往往可降低，做法是让带有完全相同二进制表述(binary representations)的具现类型(instantiation types)共享实现码。
 
-## 条款45：运用成员函数模板接受所有兼容类型
+# 条款45：运用成员函数模板接受所有兼容类型
 
 1. 请使用member function templates(成员函数模板)生成“可接受所有兼容类型的函数；
 2. 如果你声明 member templates 用于“泛化 copy构造”或“泛化 assignment操作”你还是需要声明正常的copy构造函数和copyassignment操作符。
@@ -2117,7 +2143,7 @@ SmartPtr<Top> pt2 = SmartPtr<Bottom>(new Bottom);
 SmartPtr<const Top> pct2 = pt1;
 ```
 
-## 条款46：需要类型转换时请为模板定义非成员函数
+# 条款46：需要类型转换时请为模板定义非成员函数
 
 当我们编写一个 class template，而它所提供之“与此template 相关的”函数支持“所有参数之隐式类型转换”时，请将那些函数定义为“classtemplate内部的 friend 函数”。
 
@@ -2167,7 +2193,7 @@ class Rational
 
 现在对 operator * 的混合式调用可以通过编译了，因为当对象oneHalf 被声明为一个 Rational< int >，class Rational< int >于是被具现化出来，而作为过程的一部分，friend 函数operator *(接受Rational< int >参数)也就被自动声明出来。后者身为一个函数而非函数模板(functiontemplate)，因此编译器可在调用它时使用隐式转换函数(例如 Rationa1的 non-explicit构造函数)，而这便是混合式调用之所以成功的原因。
 
-## 条款47：请使用 traits classes 表现类型信息
+# 条款47：请使用 traits classes 表现类型信息
 
 1. Traits classes 使得“类型相关信息”在编译期可用。它们以templates 和“templates特化”完成实现；
 2. 整合重载技术(overloading)后，traitscasses有可能在编译期对类型执行if...else 测试，在编译期完成的事延到运行期才做的话，不仅浪费时间，也造成可执行文件膨胀。
@@ -2272,12 +2298,12 @@ void advance(IterT& iter, DistT d)
 }
 ```
 
-## 条款48：认识 template 元编程
+# 条款48：认识 template 元编程
 
 1. Template metaprogramming(TMP，模板元编程)可将工作由运行期移往编译期因而得以实现早期错误侦测和更高的执行效率；
 2. TMP 可被用来生成“基于政策选择组合”(basedoncombinationsofpolicychoices)的客户定制代码，也可用来避免生成对某些特殊类型并不适合的代码。
 
-## 条款49：了解 new-handler 的行为
+# 条款49：了解 new-handler 的行为
 
 1. set new handler允许客户指定一个函数，在内存分配无法获得满足时被调用；
 
@@ -2363,7 +2389,7 @@ void advance(IterT& iter, DistT d)
 
    如果分配成功，接下来 widget构造函数会被调用，而在那一点上所有的筹码便都耗尽，因为widget 构造函数可以做它想做的任何事。它有可能又 new 一些内存，而没人可以强迫它再次使用 nothrow new。因此虽然"new(std::nothrow)widget”调用的operator new并不抛掷异常，但 widget构造函数却可能会。如果它真那么做，该异常会一如往常地传播。需要结论吗?结论就是:使用nothrownew只能保证operator new不抛掷异常，不保证像"new(std::nothrow)widget"这样的表达式绝不导致异常。因此你其实没有运用 nothrow new的需要。
 
-## 条款50：了解 new和 delete 的合理替换时机
+# 条款50：了解 new和 delete 的合理替换时机
 
 1. 为了检测运用错误，如果将“new所得内存”delete 掉却不幸失败，会导致内存泄漏(memory leaks)。如果在“new所得内存”身上多次 delete则会导致不确定行为。如果operator new持有一串动态分配所得地址，而operator delete将地址从中移走，倒是很容易检测出上述错误用法。此外各式各样的编程错误可能导致数据“overruns"(写入点在分配区块尾端之后)或"underruns(写入点在分配区块起点之前)。如果我们自行定义一个operator news，便可超额分配内存，以额外空间(位于客户所得区块之前或后)放置特定的 bytepatterms(即签名，signatures)。operator deletes便得以检查上述签名是否原封不动，若否就表示在分配区的某个生命时间点发生了overrun或underrun，这时候 operator delete可以志记(1og)那个事实以及那个惹是生非的指针；
 2. 为了收集动态分配内存之使用统计信息，在一头栽进定制型 news 和定制型 deletes 之前，理当先收集你的软件如何使用其动态内存。分配区块的大小分布如何?寿命分布如何?它们倾向于以FIFO(先进先出)次序或LIFO(后进先出)次序或随机次序来分配和归还?它们的运用型态是否随时间改变，也就是说你的软件在不同的执行阶段有不同的分配/归还形态吗?任何时刻所使用的最大动态分配量(高水位)是多少?自行定义operator new和operator delete 使我们得以轻松收集到这些信息；
@@ -2373,7 +2399,7 @@ void advance(IterT& iter, DistT d)
 6. 为了将相关对象成簇集中，如果你知道特定之某个数据结构往往被一起使用，而你又希望在处理这些数据时将“内存页错误”(page faults)的频率降至最低，那么为此数据结构创建另一个heap 就有意义，这么一来它们就可以被成簇集中在尽可能少的内存页(pages)上。new和delete的“placement版本”(见条款 52)有可能完成这样的集簇行为；
 7. 为了获得非传统的行为。有时候你会希望operators new和 delete做编译器附带版没做的某些事情。例如你可能会希望分配和归还共享内存(sharedmemory)内的区块，但唯一能够管理该内存的只有C API函数，那么写下一个定制版 new和 delete(很可能是 placement版本，见条款52)，你便得以为C API穿上一件 C++ 外套。你也可以写一个自定的operator delete，在其中将所有归还内存内容覆盖为0，藉此增加应用程序的数据安全；
 
-## 条款51：编写 new和 delete 时需固守常规
+# 条款51：编写 new和 delete 时需固守常规
 
 1. operator new应该内含一个无穷循环，并在其中尝试分配内存，如果它无法满足内存需求，就该调用new-handler。operator new也应该有能力处理0bytes申请：
 
@@ -2451,7 +2477,7 @@ void advance(IterT& iter, DistT d)
    }
    ```
 
-## 采款52：写了placement new也要写placement delete
+# 采款52：写了placement new也要写placement delete
 
 1. 当你写一个 placement operator new，请确定也写出了对应的 placement operator delete。如果没有这样做，你的程序可能会发生隐微而时断时续的内存泄漏。即  new 正常调用，内存分配成功，但类的构造函数抛出异常，此时运行期系统有责任取消 operator new的分配并恢复旧观，然而运行期系统无法知道真正被调用的那个 operator new 如何运作，因此它无法取消分配并恢复旧观，所以上述做法行不通。取而代之的是，运行期系统寻找“参数个数和类型都与operator new相同”的某个 operator delete，如果找到,那就是它的调用对象，如果找不到，发生内存泄漏；
 
@@ -2485,12 +2511,12 @@ void advance(IterT& iter, DistT d)
    }
    ```
 
-## 条款53：不要轻忽编译器的警告
+# 条款53：不要轻忽编译器的警告
 
 1. 严肃对待编译器发出的警告信息。努力在你的编译器的最高(最严苛)警告级别下争取“无任何警告”的荣誉；
 2. 不要过度倚赖编译器的报警能力，因为不同的编译器对待事情的态度并不相同。一旦移植到另一个编译器上，你原本倚赖的警告信息有可能消失。
 
-## 条款54：让自己熟悉包括 TR1在内的标准程序库
+# 条款54：让自己熟悉包括 TR1在内的标准程序库
 
 
 

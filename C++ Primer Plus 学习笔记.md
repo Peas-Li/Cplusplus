@@ -8,11 +8,11 @@
 
 1. c++预编译，编译，汇编，链接；
 
-   **预编译**：预编译把一些#define的宏定义完成文本替换，然后将`#include`的文件里的内容复制到.cpp文件里，如果.h文件里还有.h文件，就递归展开；
+   **预编译**：预编译把一些#define的宏定义完成文本替换，然后将#include的文件里的内容复制到.cpp文件里，如果.h文件里还有.h文件，就递归展开，最终生成.i文件；
 
-   **编译**：编译只是把我们写的代码转为汇编代码，它的工作是检查词法和语法规则；
+   **编译**：编译只是把.i文件转为汇编代码.s，它的工作是检查词法和语法规则；
 
-   **汇编**：汇编过程将上一步的汇编代码(`main.s`)转换成机器码(machine code)，这一步产生的文件叫做目标文件(`main.o`)，是二进制格式；
+   **汇编**：汇编过程将上一步的汇编代码转换成机器码(machine code)，这一步产生.o文件(可重定位文件)，是二进制格式；
 
    **链接**：编译只是将我们自己写的代码变成了二进制形式，它还需要和系统组件（比如标准库、动态链接库等）结合起来，这些组件都是程序运行所必须的。链接（Link）其实就是一个“打包”的过程，它将所有二进制形式的目标文件(.o)和系统组件组合成一个可执行文件，此外需要注意的是：C++程序编译的时候其实只识别.cpp文件，每个cpp文件都会分别编译一次，生成一个.o文件。这个时候，链接器除了将目标文件和系统组件组合起来，还需要将编译器生成的多个.o或者.obj文件组合起来，生成最终的可执行文件(Executable file)；
 
@@ -106,7 +106,7 @@
 
 3. 单字符读取：
 
-   1. get(char &):
+   1. cin.get(char &):
 
       1. 会读取空白字符；
 
@@ -114,7 +114,7 @@
 
       3. 如果程序到达文件尾，就没有值可供赋给参数了。 另外，该方法还调用setstate（failbit），导致cin的返回结果转换为false；
 
-   2. get(void):
+   2. cin.get(void):
 
       1. get(void)成员函数的返回类型为int；
 
@@ -400,9 +400,9 @@
 
       2. 若是字符数组，则用 cin.getline(char *, int); 
 
-      3. 两个版本的getline( )都有第三个可选参数，用于指定使用哪个字符来确定输入的边界：getline(char *, int, ch);  cin.getline(char *, int, ch);
+      3. 两个版本的getline( )都有第三个可选参数，用于指定使用哪个字符来确定输入的边界：getline(cin, str, ch);  cin.getline(char *, int, ch);
 
-      4. getline(char *, int返回一个 cin 对象，可以接着调用getline(char *, int)；
+      4. getline(char *, int)返回一个 cin 对象，可以接着调用getline(char *, int)；
    
       5. getline(char *, int)方法将从输入队列中读取字符，将它们放到str数组的元 素中，直到（按测试顺序）到达文件尾、将要读取的字符是换行符或存储了size个字符为止。如果遇到文件尾，则设置eofbit；如果将要读取的 字符是换行符，则该字符将被读取并丢弃；如果读取了size个字符，并且 下一个字符不是换行符，则设置failbit。因此，包含size个或更多字符的输入行将终止输入。
    
@@ -512,7 +512,7 @@
    
       4. cin.get(char *, int, char); //第三个是可选参数，用于指定使用哪个字符来确定输入的边界；
    
-      5. get(char *, int)返回一个 cin 对象，可以接着调用get(char *, int);
+      5. cin.get(char *, int)返回一个 cin 对象，可以接着调用get(char *, int);
    
          ```c++
          #include <iostream>
@@ -661,6 +661,11 @@
 4. 访问成员：
 
    运算符句点：variableName.成员
+
+5. 结构体的对齐和补齐的规则：
+
+   对齐：假定从零地址开始，每成员的起始地址编号，必须是它本身字节数的整数倍。
+   补齐：结构的总字节数必须是它最大成员的整数倍。
 
 ### 共用体
 
@@ -4233,7 +4238,7 @@ int main()
 
       1. 原型：className::className(const className & )
       2. 每当程序生成了对象副本时，编译器都将使用复制构造函数。具体地说，当函数按值传递对象或函数返回对象时，都将使用复制构造函数。记住，按值传递意味着创建原始变量的一个副本。编译器生成临时对象时，也将使用复制构造函数。例如，将3个Vector对象相加时，编译器可能生成临时的Vector对象来保存 中间结果。何时生成临时对象随编译器而异，但无论是哪种编译器，当 按值传递和返回对象时，都将调用复制构造函数；
-      3. 默认的复制构造函数逐个复制非静态成员（成员复制也称为浅复制），复制的是成员的值；如果成员本身就是类对象，则将使用这个类的复制构造函数来复制成员对象。静态函数不受影响，因为它们属于整个类，而不是各个对象；
+      3. 默认的复制构造函数逐个复制非静态成员（成员复制也称为浅复制），复制的是成员的值；如果成员本身就是类对象，则将使用这个类的复制构造函数来复制成员对象。静态成员不受影响，因为它们属于整个类，而不是各个对象；
       4. 必须定义复制构造函数的原因在于，一些类成员是使用new初始化的、指向数据的指针，而不是数据本身，这种情况下，析构函数的调用会释放连续释放来自同一片地址的值，将导致错误；
       5. 解决类设计中这种问题的方法是进行深度复制（deep copy）。
 
@@ -4317,7 +4322,8 @@ class String
 		friend bool operator=(const String &st, const String &st2);
 		friend ostream & operator<<(ostream & os, const String & st);
 		friend istream & operator>>(istream & is, String & st);
-		static int HowMany();
+		static int HowMany(); //静态类成员函数，首先，不能通过对象调用静态成员函数；实际上，静态成员函数甚至不能使用this指针。如果静态成员函数是在公有部分声明的，则可以使用类名和作用域解析运算符来调用它，而不实例化对象（枚举类型和嵌套类也同理，但要访问嵌套类的非静态公共成员，则必须实例化嵌套类）。其次，由于静态成员函数不与特定的对象相关联，因此只能使用静态数据成员。例如，静态方法HowMany()可以访问静态成员num_string，但不能访问str和len(非静态成员)。同样，也可以使用静态成员函数设置类级（classwide）标记，以控制某些类接口的行为。例如，类级标记可以控制显示类内容的方法所使用的格式。
+		
 }；
 
 #endif
@@ -4334,7 +4340,7 @@ using std::cout;
 
 int String::num_strings = 0;
 
-int String::HowMany()
+int String::HowMany() //独立实现文件，不能包含关键字static
 {
 	return num_strings;
 }
@@ -5629,7 +5635,7 @@ void set(Student & sa, int n)
 
          void/classname< Type > className< Type >::func(Type item ... ) { ... };
 
-         若原型将成员函数的返回类型声明为类，而实际的模板函数定义将类型定义为classname< Type >。前者是后者的缩写，但只能在类中使用。即可以在模板声明或模板函数定义内使用classname，但在类外部定义成员函数，即指定返回类型或使用作用域解析运算符时，必须使用完整的classname< Type >。
+         若原型将成员函数的返回类型声明为类，而实际的模板函数定义将类型定义为classname< Type >。前者是后者的缩写，但只能在类中使用。即可以在模板声明或模板函数定义内使用classname，但在类外部定义成员函数，即指定返回类型或使用作用域解析运算符时，必须使用完整的classname< Type >。[注入类名 - cppreference.com](https://zh.cppreference.com/w/cpp/language/injected-class-name)
 
       4. 所有模板信息放在一个头文件中，并在要使用这些模板的文件中包含该头文件。
 
@@ -5699,7 +5705,7 @@ void set(Student & sa, int n)
    
    #endif
    ```
-   
+
 2. 模板类实例化：
 
    className< Type > class1; //类型参数Type为内置类型或类对象；
@@ -6027,7 +6033,7 @@ void set(Student & sa, int n)
 
     1. 模板类的非模板友元函数
 
-       有些编译器将对使用非模板友元发出警告。
+       有些编译器将对使用非模板友元发出警告（vscode c++17）：warning: friend declaration 'void reports(HasFriend<T>&)' declares a non-template function [-Wnon-template-friend]
 
        template < class T >
 
@@ -6035,7 +6041,7 @@ void set(Student & sa, int n)
 
        {
 
-       ​	friend void report(HasFriend &); //invalid, 不存在HasFriend这样的对象，而只有特定的具体化，如HasFriend< short >。要提供模板类参数，必须指明具体化
+       ​	friend void report(HasFriend &); //注入类名，可以省略< T >
 
        ​	friend void report(HasFriend< T > &);
 
@@ -6043,7 +6049,15 @@ void set(Student & sa, int n)
 
        };
 
-       带HasFriend< int >参数的report( )将成为HasFriend类的友元，同样，带HasFriend< double >参数的report( )将是report( )的一个 重载版本——它是Hasfriend类的友元，这意味着必须为要使用的友元定义显式具体化：
+       如果想要不同的模板参数实例化表现出相同的report（即所有的实例共享一个reports），在类内声明时直接定义函数体，此时不能给某个具体类型提供额外的具体化版本，那将会发生二义性；
+
+       friend void reports(*HasFriend* &){
+
+       ​     cout << "HasFriend<>: " << hf.item << endl;
+
+       }
+
+       如果想要不同的模板参数实例化表现出不同的report，例如，带HasFriend< int >参数的report( )将成为HasFriend类的友元，同样带HasFriend< double >参数的report( )将是report( )的一个 重载版本——它也是Hasfriend类的友元，这意味着必须为要使用的友元定义显式具体化：
 
        void report(HasFriend< int> &) { ... };
 
@@ -6252,6 +6266,14 @@ void set(Student & sa, int n)
        arrtype< double > gallons;
 
        arrtype< int > days;
+
+12. 注入类名：
+
+    注入类名是在类的作用域内该类自身的无限定的名字。
+
+    类模板中，注入类名能用作指代当前模板的模板名，或指代当前实例化的类名。
+
+    [注入类名 - cppreference.com](https://zh.cppreference.com/w/cpp/language/injected-class-name)
 
 ##  友元、异常和其他
 
@@ -8562,7 +8584,7 @@ istream类（在iostream头文件中定 义）重载了抽取运算符>>，使�
 
    3. gcount( )：
 
-      返回最后一个非格式化抽取方法读取的字符数。这意 味着字符是由get( )、getline( )、ignore( )或read( )方法读取的，不是由抽 取运算符（>>）读取的，抽取运算符对输入进行格式化，使之与特定的 数据类型匹配；
+      返回最后一个非格式化抽取方法读取的字符数。这意 味着字符是由get( )、getline( )、ignore( )或read( )方法读取的，不是由抽 取运算符（>>）读取的，抽取运算符对输入进行格式化，使之与特定的数据类型匹配；
 
    4. putback( )：
 
@@ -8661,7 +8683,7 @@ istream类（在iostream头文件中定 义）重载了抽取运算符>>，使�
 
          istream & seekg(streamoff, ios_base::seekdir);
 
-         streamoff值被用来度量相对于文件特定位置的偏移量（单位为字节）。streamoff参数表示相对于三个位置之一的偏移量（以字节为单位）。seek_dir参数是ios_base类中定义的另一种整型，有3个可能的值。常i指相对于文件开始处的偏移量。常量ios_base::cur指相对于当前位置的偏移量；常量ios_base::end指相对于文件尾的偏移量。
+         streamoff值被用来度量相对于文件特定位置的偏移量（单位为字节）。streamoff参数表示相对于三个位置之一的偏移量（以字节为单位）。seek_dir参数是ios_base类中定义的另一种整型，有3个可能的值。常量ios_base::beg指相对于文件开始处的偏移量。常量ios_base::cur指相对于当前位置的偏移量；常量ios_base::end指相对于文件尾的偏移量。
 
          seekg( )的char类型的模板具体化2：
 
@@ -9471,7 +9493,7 @@ istream类（在iostream头文件中定 义）重载了抽取运算符>>，使�
 
 1. 包装器function及模板的低效性
 
-   下面的代码输出有5个不同的地址，这表明模板use_f( )有5个不同的实例化。其中的dub是一个函数的名称，该函数接受一个double参数并返回一个double值。函数名是指针，因此参数F的类型为double( * ) (double)： 一个指向这样的函数的指针，即它接受一个double参数并返回一个 double值。第二个参数的类型也是double(*) (double)，因此该调用使用的use_f( )实例化与第一个调用相同。 在接下来的两个use_f( )调用中，第二个参数为对象，F的类型分别为Fp和Fq，因为将为这些F值实例化use_f( )模板两次。最后两个调用将F的类型设置为编译器为lambda表达式使用的类型；
+   下面的代码输出有5个不同的地址，这表明模板use_f( )有5个不同的实例化。其中的dub是一个函数的名称，该函数接受一个double参数并返回一个double值。函数名是指针，因此参数F的类型为double( * ) (double)： 一个指向这样的函数的指针，即它接受一个double参数并返回一个 double值。第二个参数的类型也是double(*) (double)，因此该调用使用的use_f( )实例化与第一个调用相同。 在接下来的两个use_f( )调用中，第二个参数为对象，F的类型分别为Fp和Fq，因为将为这些F值实例化use_f( )模板两次。最后两个调用将F的类型设置为编译器为lambda表达式使用的类型(同样不同)；
 
    ```c++
    //somedefs.h
