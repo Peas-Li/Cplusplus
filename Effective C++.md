@@ -1,3 +1,257 @@
+# 条款01：视 C++为一个语言联邦
+
+# 条款02：尽量以const, enum, inline 替换 #define
+
+**对于单纯常量，最好以const对象或enums替换#defines：**
+
+1. ```c++
+   #define ASPECT_RATIO 1.653：
+   ```
+
+   记号名称 ASPECT_RATIO也许从未被编译器看见；也许在编译器开始处理源码之前它就被预处理器移走了。于是记号名称ASPECTRATIO有可能没进入记号表(symboltable)内。于是当你运用此常量但获得一个编译错误信息时，可能会带来困惑，因为这个错误信息也许会提到1.653而不是ASPECTRATIO。如果ASPECT RATIO 被定义在一个非你所写的头文件内，你肯定对1.653 以及它来自何处毫无概念，于是你将因为追踪它而浪费时间。这个问题也可能出现在记号式调试器(symbolic debugger)中,原因相同:你所使用的名称可能并未进入记号表(symboltable)
+
+   解决之道是以一个常量替换上述的宏(#define):
+
+   ```c++
+   const double AspectRatio=1.653;//大写名称通常用于宏，因此这里改变名称写法
+   ```
+
+   作为一个语言常量，AspectRatio肯定会被编译器看到，当然就会进入记号表内。此外对浮点常量(floatingpointconstant，就像本例)而言，使用常量可能比使用#define 导致较小量的码，因为预处理器“自目地将宏名称ASPECTRATIO替换为 1.653”可能导致目标码(objectcode)出现多份1.653,若改用常量 AspectRatio绝不会出现相同情况。
+
+   当我们以常量替换#defines，有两种特殊情况：
+
+   1. 定义常量指针：
+
+      由于常量定义式通常被放在头文件内(以便被不同的源码含入)，因此有必要将指针(而不只是指针所指之物)声明为const。例如若要在头文件内定义一个常量的(不变的)char*-based字符串，你必须写const两次:
+
+      ```c++
+      const char*const authorName="Scott Meyers";
+      ```
+
+      string对象通常比其前辈char*-based合宜，所以上述的authorName往往定义成这样更好些:
+
+      ```c++
+      const std::string authorName("Scott Meyers");
+      ```
+
+   2. class专属常量：
+
+      为了将常量的作用域(scope)限制于class内，你必须让它成为class的一个成员(member);而为确保此常量至多只有一份实体，你必须让它成为一个 static 成员:
+
+      ```c++
+      class GamePlayer{
+      	private:
+          	static const int NumTurns=5;//常量声明式
+      		int scores[NumTurns];//使用该常量
+      };
+      ```
+
+      然而你所看到的是NumTurns的声明式而非定义式。通常C++要求你对你所使用的任何东西提供一个定义式,但如果它是个class 专属常量又是 static 且为整数类型(integraltype，例如 ints,chars,bools)，则需特殊处理。只要不取它们的地址你可以声明并使用它们而无须提供定义式。但如果你取某个class专属常量的地址或纵使你不取其地址而你的编译器却(不正确地)坚持要看到一个定义式，你就必须另外提供定义式如下:
+
+      const int GamePlayer::NumTurns;//NumTurns的定义
+
+      请把这个式子放进一-个实现文件而非头文件。由于cass常量已在声明时获得初值(例如先前声明Numrurns时为它设初值S)，因此定义时不可以再设初值。请注意，我们无法利用#define创建一个class专属常量，因为#defines并不重视作用域(scope)。一旦宏被定义，它就在其后的编译过程中有效(除非在某处被#undef)。这意味#defines不仅不能够用来定义 class 专属常量也不能够提供任何封装性，也就是说没有所谓private #define这样的东西。而当然const成员变量是可以被封装的，Numrurns就是。
+
+2. 当你在class 编译期间需要一个 class 常量值，例如在上述的GamePlayer::scores的数组声明式中(是的，编译器坚持必须在编译期间知道数组的大小)。这时候万一你的编译器(错误地)不允许“static 整数型 class 常量”完成“in class 初值设定”,可改用所谓的"the enumhack”补偿做法。其理论基础是:“一个属于枚举类型(enumeratedtype)的数值可权充 ints 被使用”，于是 Gameplayer可定义如下:
+
+   ```c++
+   class GamePlayer{
+   private:
+   	enum {NumTurns=5}; //"the enum hack"_令NumTurns成为5的一个记号名称
+   	int scores[NumTurns];
+   }
+   ```
+
+   第一，enum hack的行为某方面说比较像 #define而不像const,有时候这正是你想要的。例如取一个 const的地址是合法的，但取一个 enum的地址就不合法，而取一个#define的地址通常也不合法。如果你不想让别人获得一个 pointer或reference 指向你的某个整数常量,enum 可以帮助你实现这个约束。此外虽然优秀的编译器不会为“整数型const对象”设定另外的存储空间(除非你创建一个pointer或reference指向该对象)，不够优秀的编译器却可能如此，而这可能是你不想要的。Enums和#defines一样绝不会导致非必要的内存分配。
+
+**对于形似函数的宏(macros)，最好改用inline函数替换#defines**
+
+1. #define实现宏(macros)：
+
+   ```c++
+   #define CALL_WITH_MAX(a,b) f((a)>(b)?(a):(b)) //无论何时当你写出这种宏，你必须记住为宏中的所有实参加上小括号
+   ```
+
+   看下面这段代码：
+
+   ```c++
+   int a=5，b=0;
+   CALL WITH MAX(++a,b);	//a被累加二次
+   CALL WITH MAX(++a，b+10);	//a 被累加一次
+   ```
+
+   在这里，调用f之前，a的递增次数竟然取决于“它被拿来和谁比较”!
+
+   你可以获得宏带来的效率以及一般函数的所有可预料行为和类型安全性(typesafety)--只要你写出template inline函数(见条款30):
+
+   ```c++
+   template<typename T>
+   inline void callWithMax(const T& a, const T& b)
+   {
+   	f(a > b ? a : b);
+   }
+   ```
+
+   此外由于 cal1withMax是个真正的函数，它遵守作用域(scope)和访问规则。例如你绝对可以写出一个“class内的privateinline 函数”。一般而言宏无法完成此事。
+
+# 条款03：尽可能使用const
+
+```c++
+char greeting="Hello";
+char* p= greeting;			//non-const pointer, non-const data
+const char*p=greeting;		//non-const pointer, const data
+char* const p=greeting;		//const pointer, non-const data
+const char* const p=greeting;	//const pointer, const data
+```
+
+**有些程序员会将关键字const写在类型之前，有些人会把它写在类型之后、星号之前。两种写法的意义相同，所以下列两个函数接受的参数类型是一样的:**
+
+```c++
+void fl(const widget*pw);	//f1获得一个指针，指向一个常量的(不变的)widget对象
+void f2(Widget const *pw);	//f2也是
+```
+
+**令函数返回一个常量值，往往可以降低因客户错误而造成的意外，而又不至于放弃安全性和高效性，例如：**
+
+```c++
+class Rational {...}；
+operator*const Rational (const Rational& lhs,constRational&rhs);
+```
+
+为什么返回一个 const：
+
+许多程序员会在无意识中那么做，只因为单纯的打字错误(以及一个可被隐式转换为 bool的类型):
+
+```c++
+Rational a,b,c
+if(a * b = c) ...	//在a*b的成果上调用operator=
+```
+
+如果a和b都是内置类型，这样的代码直截了当就是不合法。而一个“良好的用户自定义类型”的特征是它们避免无端地与内置类型不兼容(见条款18)，因此允许对两值乘积做赋值动作也就没什么意思了。将operator*的回传值声明为const可以预防那个“没意思的赋值动作”，这就是该那么做的原因。
+
+**const 成员函数：**
+
+这有两个流行概念:bitwiseconstness(又称physical constness)和 logical constness:
+
+bitwise const阵营的人相信,成员函数只有在不更改对象之任何成员变量(static除外)时才可以说是const。也就是说它不更改对象内的任何一个bit。这种论点的好处是很容易侦测违反点:编译器只需寻找成员变量的赋值动作即可。bitwiseconstness 正是C++ 对常量性(constness)的定义，因此 const 成员函数不可以更改对象内任何 non-static 成员变量。不幸的是许多成员函数虽然不足具备const性质却能通过 bitwise 测试。更具体地说，一个更改了“指针所指物”的成员函数虽然不能算是const，但如果只有指针(而非其所指物)隶属于对象，那么称此函数为bitwiseconst不会引发编译器异议。这导致反直观结果。假设我们有一个TextBlock-like class，它将数据存储为 char*而不是 string，因为它需要和一个不认识 string对象的CAPI沟通:
+
+```c++
+class CTextBlock
+{
+    public:
+        ...
+        char& operator[](std::size_t position) const // bitwise const 声明, 但其实不适当
+        {return pText[position];}
+    private:
+        char* pText;
+}
+```
+
+这个class不适当地将其operator[]声明为const成员函数，而该函数却返回一个 reference 指向对象内部值(条款28对此有深刻讨论)。假设暂时不管这个事实，请注意，operator[]实现代码并不更改pText。于是编译器很开心地为operator[]产出目标码。它是 bitwise const，所有编译器都这么认定。但是它允许发生什么事:
+
+```c++
+CTextBlock cctb("Hello");	//声明一一个常量对象。
+constchar* pc=&cctb[0];		//调用 const operator[]取得--个指针// 指向 cctb的数据。
+*pc ='J';					//cctb现在有了"Jello”这样的内容。
+```
+
+这其中当然不该有任何错误:你创建一个常量对象并设以某值，而且只对它调用const成员函数。但你终究还是改变了它的值。
+
+这种情况导出所谓的logical constness。这一派拥护者主张，一个const 成员函数可以修改它所处理的对象内的某些 bits，但只有在客户端侦测不出的情况下才得如此。例如你的 cTextBlockclass有可能高速缓存(cache)文本区块的长度以便应付询问:
+
+```c++
+class CTextBlock
+{
+	public :
+		...
+		std::sizetlength()const;
+	private:
+		char* pText;
+		std::size ttextLength;	//最近一次计算的文本区块长度。
+		bool lengthIsValid;		//目前的长度是否有效。
+};
+std::size tCTextBlock::length() const
+{
+	if(!lengthIsValid){
+		textLength = std::strlen(pText);	//错误!在const 成员函数内不能赋值给 textLength
+		lengthIsValid =true;				//和lengthIsvalid.
+	return textlength;
+}
+```
+
+length的实现当然不是bitwise const，因为textLength和 lengthIsValid都可能被修改。这两笔数据被修改对const cTextBlock对象而言虽然可接受，但编译器不同意。它们坚持 bitwise constness。解决办法很简单:利用C++的一个与 const相关的摆动场:mutable(可变的)。mutable释放掉 non-static成员变量的 bitwise constness 约束:
+
+```c++
+class CTextBlock
+{
+	public:
+		...
+		std::sizet length()const;
+    private:
+		char* pText;
+		mutable std::size ttextLength;		//这些成员变量可能总是
+		mutable bool lengthIsValid;			//会被更改，即使在const 成员函数内。
+};
+std::sizetCTextBlock::length() const
+{
+	if(!lengthIsValid){
+		textLength=std::strlen(pText);	//现在，可以这样，
+		lengthIsValid =true;			//也可以这样。
+	return textLength;
+}
+```
+
+**在const 和 non-const 成员函数中避免重复:**
+
+对于“bitwise-constness 非我所欲”的问题，mutable 是个解决办法，但它不能解决所有的 const相关难题。举个例子，假设TextBlock(和cTextBlock)内的 operator[]不单只是返回一个reference 指向某字符，也执行边界检验(boundschecking)、志记访问信息(oggedaccessinfo.)、甚至可能进行数据完善性检验。把所有这些同时放进const和non-const operator[]中，导致这样的怪物(暂且不管那将会成为一个“长度颇为可议”的隐喻式 inline 函数--见条款 30):
+
+```c++
+class TextBlock
+{
+	public:
+		const char& operatorl](std::size_t position) const
+        {
+         	...	//边界检验(bounds checking)
+            ...	//志记数据访问(1ogaccess data)
+            ...	//检验数据完整性(verify dataintegrity)
+			return text[position];
+        }
+		char& operator[](std::size_t position) 
+        {
+         	...	//边界检验(bounds checking)
+            ...	//志记数据访问(1ogaccess data)
+            ...	//检验数据完整性(verify dataintegrity)
+			return text[position];
+        }
+	private:
+		std::string text;
+};
+```
+
+其中发生的代码重复以及伴随的编译时间、维护、代码膨胀等令人头痛的问题吗?当然将边界检验……等所有代码移到另一个成员函数(往往是个 private)并令两个版本的operator[]调用它，是可能的，但你还是重复了些代码，例如函数调用、两次 return语句等等。你真正该做的是实现operatorl]的机能一次并使用它两次。也就是说，你必须令其中一个调用另一个。这促使我们将常量性转除(castimgawayconstmess)。就一般守则而言，转型(casting)是一个糟糕的想法，我将贡献一整个条款来谈这码事(条款27)，告诉你不要那么做。然而代码重复也不是什么令人愉快的经验。本例中 const operator[]完全做掉了non-const版本该做的一切，唯一的不同是其返回类型多了一个const 资格修饰。这种情况下如果将返回值的const 转除是安全的，因为不论谁调用non-const operator[]都一定首先有个 non-const对象,否则就不能够调用 non-const函数。所以令 non-const operator[]调用其 const兄弟是一个避免代码重复的安全做法--即使过程中需要一个转型动作。下面是代码:
+
+```c++
+class TextBlock
+{
+	public:
+    	...
+		const char& operatorl](std::size_t position)	const //一如既往
+        {
+            ...
+            ...
+            ...
+            return textlposition];
+        }
+
+    	char& operatorl](std::size_t position)	//现在只调用 const op[]
+        {
+            return	const_cast<char&>(static_cast<const TextBlock&>(*this)	////将 op[]返回值的 const 转除，为*this加上const[position]，调用 const op[]
+        }
+);
+```
+
+更值得了解的是，反向做法--令const版本调用non-const 版本以避免重复--并不是你该做的事。记住，const成员函数承诺绝不改变其对象的逻辑状态(1ogical state)，non-const成员函数却没有这般承诺。如果在const函数内调用non-const函数，就是冒了这样的风险:你曾经承诺不改动的那个对象被改动了。这就是为什么“const成员函数调用non-const成员函数”是一种错误行为:因为对象有可能因此被改动。实际上若要令这样的代码通过编译，你必须使用一个const cast将this身上的 const性质解放掉。反向调用(也就是我们先前使用的那个)才是安全的:non-const成员函数本来就可以对其对象做任何动作，所以在其中调用一个const成员函数并不会带来风险。这就是为什么本例以 static cast作用于this的原因:这里并不存在 const相关危险。
+
 # 条款04：确定对象被使用前已先被初始化
 
 1. 为内置型对象进行手工初始化，因为C不保证初始化它们；
