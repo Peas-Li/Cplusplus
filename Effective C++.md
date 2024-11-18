@@ -316,23 +316,49 @@ class TextBlock
 4. copy assignment操作符，其行为基本上与copy 构造函数如出一辙，但一般而言只有当生出的代码合法且有适当机会证明它有意义。看下面的例子：
 
    ```c++
+   
    template<class T>
    class NamedObject
    {
    	public:
-   		NamedObject(string& nameconst T& value)；
+   		NamedObject(string& name) : nameValue(name) {}
    	private:
-   		string newDog("Persephone");
-   		std::string oldDog("Satch");
+   		std::string& nameValue;
    };
-   string newDog("Persephone");
-   string oldgog("Satch");
-   PersephoneNamedObject<int> p(newDog，2);
-   NamedObject<int> s(oldDog，36);
-   p = s;
+   
+   int main()
+   {
+       string newDog("Persephone");
+       string oldDog("Satch");
+       NamedObject<int> p(newDog);
+       NamedObject<int> s(oldDog);
+       p = s; //invalid
+   }
    ```
 
-   C++并不允许“让reference 改指向不同对象”，面对如此情况，C++的响应是拒绝编译那一行赋值动作。如果你打算在一个“内含reference 成员”的 cass 内支持赋值操作(assignment)，你必须自己定义 copyassignment操作符。面对“内含const成员”编译器的反应也一样。更改 const 成员是不合法的，所以编译器不知道如何在它自己生成的赋值函数内面对它们。最后还有一种情况:如果某个basecasses将copy assignment操作符声明为private，编译器将拒绝为其derived classes生成一个 copy assignment 操作符。毕竟编译器为derived ciasses所生的copy assignment操作符想象中可以处理 base class成分，但它们当然无法调用 derived class 无权调用的成员函数。
+   ```c++
+   //自定义赋值运算符后允许
+   template<class T>
+   class NamedObject
+   {
+       public:
+           NamedObject(string& name) : nameValue(name) {}
+           NamedObject& operator=(NamedObject& other)
+           {
+               if (this != &other)
+               {
+                   nameValue = other.nameValue;
+               }
+               return *this;
+           }
+       private:
+       	std::string& nameValue;
+   };
+   ```
+
+   C++并不允许“让reference 改指向不同对象”，面对如此情况，C++的响应是拒绝编译那一行赋值动作。
+
+   如果你打算在一个“内含reference 成员”的 class 内支持赋值操作(assignment)，你必须自己定义 copyassignment操作符。面对“内含const成员”编译器的反应也一样。更改 const 成员是不合法的，所以编译器不知道如何在它自己生成的赋值函数内面对它们。最后还有一种情况:如果某个basecasses将copy assignment操作符声明为private，编译器将拒绝为其derived classes生成一个 copy assignment 操作符。毕竟编译器为derived ciasses所生的copy assignment操作符想象中可以处理 base class成分，但它们当然无法调用 derived class 无权调用的成员函数。
 
 5. 所有这些默认函数都是public且inline；
 
@@ -358,7 +384,38 @@ class TextBlock
 
 # 条款07：为多态基类声明 virtual析构函数
 
-1. polymorphic(带多态性质的)base classes应该声明一个 virtual 析构函数。如果class 带有任何 virtual函数，它就应该拥有一个 virtual析构函数；
+1. polymorphic(带多态性质的)base classes应该声明一个 virtual 析构函数。如果class 带有任何 virtual函数，它就应该拥有一个 virtual析构函数，否则可能造成“局部销毁；
+
+   ```c++
+   class TimeKeeper{
+       public:
+   		TimeKeeper();
+       	~TimeKeeper();
+   };
+   AtomicClock:public TimeKeeper{...}; //原子钟class 
+   WaterClock:public TimeKeeper{...};	//水钟class 
+   WristWatch:public TimeKeeper{..};	//腕表class 
+   
+   TimeKeeper* getTimeKeeper();	//返回一个指针，指向一个
+   								//TimeKeeper派生类的动态分配对象
+   								
+   TimeKeeper* ptk=getTimeKeeper();	//从TimeKeeper继承体系//获得一个动态分配对象。
+   ...									//运用它
+   delete ptk;							//释放它，避免资源泄漏。
+   ```
+
+   问题出在 getrimeKeeper返回的指针指向一个derived class 对象(例如AtomicClock)，而那个对象却经由一个base class指针(例如一个 TimeKeeper*指针)被删除，而目前的baseclass(TimeKeeper)有个non-virtual析构函数。这是一个引来灾难的秘诀，因为C++明白指出，当derived class对象经由一个 baseclass指针被删除,而该base class 带着一个non-virtual析构函数,其结果未有定义-实际执行时通常发生的是对象的 derived 成分没被销毁。如果getTimeKeeper 返回指针指向一个Atomicclock对象，其内的tomicclock成分(也就是声明于AtomicClock class内的成员变量)很可能没被销毁，而tomicclock的析构函数也未能执行起来。然而其base class成分(也就是TimeKeeper这一部分)通常会被销毁，于是造成一个诡异的“局部销毁”对象。这可是形成资源泄漏、败坏之数据结构、在调试器上浪费许多时间的绝佳途径。消除这个问题的做法很简单:给base class一个virtual析构函数。此后删除 derivedclass 对象就会如你想要的那般。它会销毁整个对象，包括所有derived class成分:
+
+   ```c++
+   class TimeKeeper{
+       public:
+       	TimeKeeper();
+   		virtual ~TimeKeeper();
+   };
+   TimeKeeper* getTimeKeeper();
+   ...
+   delete
+   ```
 
 2. Classes的设计目的如果不是作为 base classes 使用，或不是为了具备多态性，就不该声明 virtual 析构函数；
 
@@ -372,7 +429,7 @@ class TextBlock
    };
    ```
 
-   必须为这个pure virtual析构函数提供一份定义:
+   必须为这个pure virtual析构函数提供一份定义，可以为空定义（除此之外的其他纯虚函数可以没有定义）:
 
    AWOV::~AWOV( ) { ... }
 
@@ -380,8 +437,130 @@ class TextBlock
 
 # 条款08：别让异常逃离析构函数
 
+考虑下面的代码：
+
+```
+class widget{
+	public:
+		...
+		~widget(){...}//假设这个可能吐出一个异常
+};
+
+void doSomething()
+{
+	std::vector<widget> v;
+}
+
+//v在这里被自动销毁
+```
+
+当vectorv被销毁，它有责任销毁其内含的所有widgets。假设v内含十个widgets，而在析构第一个元素期间，有个异常被抛出。其他九个 widgets 还是应该被销毁(否则它们保存的任何资源都会发生泄漏)，因此v应该调用它们各个析构函数。但假设在那些调用期间，第二个 widget析构函数又抛出异常。现在有两个同时作用的异常，这对C++而言太多了。在两个异常同时存在的情况下，程序若不是结束执行就是导致不明确行为。本例中它会导致不明确的行为。使用标准程序库的任何其他容器(如list,set)或TR1的任何容器(见条款54)或甚至array，也会出现相同情况。容器或 array 并非遇上麻烦的必要条件，只要析构函数吐出异常，即使并非使用容器或 arrays，程序也可能过早结束或出现不明确行为。是的，C++不喜欢析构函数吐出异常!
+
 1. 析构函数绝对不要吐出异常。如果一个被析构函数调用的函数可能抛出异常，析构函数应该捕捉任何异常，然后吞下它们(不传播)或结束程序；
+
+   假设你使用一个 class 负责数据库连接:
+
+   ```c++
+   class DBConnection
+   {
+       public:
+       	...
+       	static DBConnection create();	//这个函数返回
+   										//DBConnection 对象:
+       									//为求简化暂略参数。
+       	void close();					//关闭联机;失败则抛出异常。		
+   }
+   ```
+
+   为确保客户不忘记在 DBConnection对象身上调用close()，一个合理的想法是创建一个用来管理 DBConnection资源的 class，并在其析构函数中调用 close（这一类用于资源管理的classes在第3章有详细探讨）:
+
+   ```c++
+   class DBConn	//这个 class 用来管理 DBConnection 对象
+   {
+   	public:
+   		~DBConn()	//确保数据库连接总是会被关闭
+           {
+           	db.close();
+           }		
+   	private:
+   		DBConnection db;
+   };
+   ```
+
+   客户代码：
+
+   ```c++
+   {
+   	DBConn dbc(DBConnection::create());		//开启一个区块(block)
+   											//建立 DBConnection对象并
+   											//交给 DBConn 对象以便管理。
+   											//通过 DBConn 的接口
+   											//使用 DBConnection 对象。
+   											//在区块结束点，DBConn对象
+   											//被销毁，因而自动
+   											//为 DBConnection对象调用close
+   	...
+   }
+   
+   ```
+
+   1. 如果close抛出异常就结束程序。通常通过调用abort完成:
+
+      ```c++
+      DBConn::~DBConn()
+      {
+      	try { db.close(); }
+      	catch(...) {
+      		//制作运转记录，记下对close的调用失败;
+      		std::abort();
+      	}
+      }
+      ```
+
+      如果程序遭遇一个“于析构期间发生的错误”后无法继续执行，“强迫结束程序”是个合理选项。毕竟它可以阻止异常从析构函数传播出去(那会导致不明确的行为)。也就是说调用abort可以抢先制“不明确行为”于死地。
+
+   2. 吞下因调用 close 而发生的异常:
+
+      ```c++
+      DBConn::~DBConn()
+      {
+      	try { db.close(); }
+      	catch(...) {
+      		//制作运转记录，记下对close的调用失败;
+      	}
+      }
+      ```
+
+      一般而言，将异常吞掉是个坏主意，因为它压制了“某些动作失败”的重要信息!然而有时候吞下异常也比负担“草率结束程序”或“不明确行为带来的风险”好。为了让这成为一个可行方案，程序必须能够继续可靠地执行，即使在遭遇并忽略一个错误之后。
+
 2. 如果客户需要对某个操作函数运行期间抛出的异常做出反应，那么class应该提供一个普通函数(而非在析构函数中)执行该操作。
+
+   ```c++
+   class DBConn
+   {
+   	public:
+   		...
+   		void close()
+   		{
+   			db.close();
+   			closed = true;
+   		}
+   		~DBConn()
+           {
+           	if(!closed)
+           	{
+                   try { db.close(); }
+                   catch(...) {
+                       //制作运转记录，记下对close的调用失败;
+                       ...
+                   }
+           	}
+           }		
+   	private:
+   		DBConnection db;
+   		bool closed;
+   };
+   ```
 
 # 条款09：绝不在构造和析构过程中调用 virtual函数
 
@@ -447,7 +626,7 @@ class BuyTransaction : public Transactionpublic
 };
 ```
 
-请注意本例之 BuyTransaction内的private static 函数 createlogString 的运用。是的，比起在成员初值列(member initializationlist)内给予base class 所需数据利用辅助函数创建一个值传给base class构造函数往往比较方便(也比较可读)。令此函数为 static，也就不可能意外指向“初期未成熟之 BuyTransaction 对象内尚未初始化的成员变量”。这很重要，正是因为“那些成员变量处于未定义状态”，所以“在 base class 构造和析构期间调用的 virtual 函数不可下降至 derived classes。
+请注意本例之 BuyTransaction内的private static 函数 createlogString 的运用。是的，比起在成员初值列(member initializationlist)内给予base class 所需数据，利用辅助函数创建一个值传给base class构造函数往往比较方便(也比较可读)。令此函数为 static，也就不可能意外指向“初期未成熟之 BuyTransaction 对象内尚未初始化的成员变量”。这很重要，正是因为“那些成员变量处于未定义状态”，所以“在 base class 构造和析构期间调用的 virtual 函数不可下降至 derived classes。
 
 # 条款10：令operator=返回一个reference to *this(左侧对象)
 
@@ -455,9 +634,31 @@ class BuyTransaction : public Transactionpublic
 
 # 条款11：在operator=中处理“自我赋值“
 
-1. 两个对象只要来自同一个继承体系，它们甚至不需声明为相同类型就可能造成“别名”，因为一个 base class 的reference 或 pointer 可以指向一个 derived class 对象；
+1. 如果 px和 py恰巧指向同一个东西，这也是自我赋值。这些并不明显的自我赋值，是“别名”(aliasing)带来的结果:所谓“别名”就是“有一个以上的方法指称(指涉)某对象”。一般而言如果某段代码操作pointers或references 而它们被用来“指向多个相同类型的对象”，就需考虑这些对象是否为同一个。实际上两个对象只要来自同一个继承体系，它们甚至不需声明为相同类型就可能造成“别名”因为一个base class的reference 或 pointer 可以指向一个 derived class 对象；
+
+   a[i] = a[j];
+
+   *px = *py；
 
 2. 确保当对象自我赋值时 operator=有良好行为。
+
+   意外释放资源：
+
+   ```c++
+   class Bitmap { ... }
+   class Widget
+   {
+       ...
+       private:
+       	Bitmap* pb;
+   }
+   Widget& Widget::operator=(const Widget& rhs)
+   {
+       delete pb;
+       pb = new Bitmap(*rhs.pb);
+       return *this;
+   }
+   ```
 
    1. 比较“来源对象”和“目标对象”的地址：
 
@@ -519,7 +720,7 @@ class BuyTransaction : public Transactionpublic
 
 # 条款12：复制对象时勿忘其每一个成分
 
-1. Copying函数应该确保复制“对象内的所有成员变量”及“所有base class 成分，即当你编写一个copying函数，请确保(1)复制所有1ocal成员变量，(2)调用所有baseclasses内的适当的copying 函数。
+1. Copying函数应该确保复制“对象内的所有成员变量”及“所有base class 成分，即当你编写一个copying函数，请确保(1)复制所有local成员变量，(2)调用所有baseclasses内的适当的copying 函数。
 
    ```c++
    void logCall(const std::string& funcName); //志记
@@ -557,7 +758,7 @@ class BuyTransaction : public Transactionpublic
    }
    ```
 
-2. 不要尝试以某个 copying函数实现另一个copying函数。应该将共同机能放进第三个函数中（往往是private 而且常被命名为 init），并由两个 coping函数共同调用。
+2. 这两个 copying函数往往有近似相同的实现本体,这可能会诱使你让某个函数调用另一个函数以避免代码重复。但是令某个copying函数调用另一个 copying函数却无法让你达到你想要的目标。令copyassignment操作符调用copy构造函数是不合理的，因为这就像试图构造一个已经存在的对象。反方向--令 copy构造函数调用 copy assignment操作符--同样无意义。构造函数用来初始化新对象，而assignment操作符只施行于已初始化对象身上。对一个尚未构造好的对象赋值，就像在一个尚未初始化的对象身上做“只对已初始化对象才有意义”的事一样。**不要尝试以某个 copying函数实现另一个copying函数。应该将共同机能放进第三个函数中（往往是private 而且常被命名为 init），并由两个 coping函数共同调用。**
 
 # 条款13：以对象管理资源
 
@@ -568,11 +769,11 @@ Investment* pInv = createInvestment( );
 delete pInv;
 ```
 
-这看起来妥当，但若干情况下可能无法删除它得自createInvestment的投资对象，或许因为”...“区域内的一个过早的 return语句。如果这样一个 return被执行起来，控制流就绝不会触及delete语。类似情况发生在对createInvestment的使用及delete 动作位于某循环内，而该循环由于某个continue或goto语句过早退出。最后一种可能是".”区域内的语句抛出异常果真如此控制流将再次不会幸临 delete。无论 delete如何被略过去，我们泄漏的不只是内含投资对象的那块内存，还包括那些投资对象所保存的任何资源。
+这看起来妥当，但若干情况下可能无法删除它得自createInvestment的投资对象，或许因为”...“区域内的一个过早的 return语句。如果这样一个 return被执行起来，控制流就绝不会触及delete语。类似情况发生在对createInvestment的使用及delete 动作位于某循环内，而该循环由于某个continue或goto语句过早退出。最后一种可能是"...”区域内的语句抛出异常果真如此控制流将再次不会幸临 delete。无论 delete如何被略过去，我们泄漏的不只是内含投资对象的那块内存，还包括那些投资对象所保存的任何资源。
 
-1. 为防止资源泄漏，在获得资源后立刻放入管理对象，它们在构造函数中获得资源并在析构函数中释放资源。以对象管理资源，也被称为”资源取得时机便是初始化（RALL）；
+1. 为防止资源泄漏，在获得资源后立刻放入管理对象，它们在构造函数中获得资源并在析构函数中释放资源。以对象管理资源，也被称为资源取得时机便是初始化（RALL）；
 
-2. 两个常被使用的RAIl classes分别是tr1::sharedptr和autoptr。前者通常是较佳选择,因为其copy行为比较直观。若选择autoptr，复制动作会使它(被复制物)指向 null。
+2. 两个常被使用的RAIl classes分别是tr1::shared_ptr和auto_ptr。前者通常是较佳选择,因为其copy行为比较直观。若选择auto_ptr，复制动作会使它(被复制物)指向 null，复制所得的指针将取得资源的唯一拥有权。（c++98之后auto_ptr被废弃，移步modern c++）
 
    ```c++
    std::auto_ptr<Investment> pInv(createInvestment());
@@ -584,9 +785,28 @@ delete pInv;
    ...
    ```
 
+3. auto ptr和tr1::shared ptr 两者都在其析构函数内做 delete 而不是delete[]动作(条款16对两者的不同有些描述)。那意味在动态分配而得的array身上使用 auto ptr或tr1::shared ptr是个馊主意。尽管如此，那么做仍能通过编译:
+
+   ```c++
+   std::auto ptr<std::string>						//会用上错误的
+   aps(new std::string[10]);						//delete形式。
+   std::trl::shared ptr<int> spi(new int[1024]);	//相同问题
+   ```
+
+   你或许会惊讶地发现，并没有特别针对“C++动态分配数组”而设计的类似auto_ptr或tr1::shared ptr那样的东西，甚至TR1中也没有。那是因为 vector和 string 几乎总是可以取代动态分配而得的数组。如果你还是认为拥有针对数组而设计、类似 auto ptr和 tr1::shared ptr那样的 classes 较好，参考 Boost 吧(见条款55)。在那儿会发现boost::scoped_array和boost::shared_array classes，它们都提供你要的行为。
+
 # 条款14：在资源管理类中小心 coping 行为
 
-并非所有资源都是 heap-based，对那种资源而言，像auto_ptr和tr1::shared_ptr这样的智能指针往往不适合作为资源掌管者(resourcehanders)。既然如此，你需要建立自己的资源管理类:
+**并非所有资源都是 heap-based，对那种资源而言，像auto_ptr和tr1::shared_ptr这样的智能指针往往不适合作为资源掌管者(resourcehanders)。既然如此，你需要建立自己的资源管理类:**
+
+假设使用C API函数处理类型为Mutex的互斥器对象(mutexobjects)，共有lock和 unlock两函数可用:
+
+```c++
+void lock(Mutex*pm);	 //锁定 pm 所指的互斥器
+void unlock(Mutex*pm);	 //将互斥器解除锁定.
+```
+
+为确保绝不会忘记将一个被锁住的Mutex解锁，你可能会希望建立-class用来管理机锁。这样的 class的基本结构由RAII守则支配，也就是“资源在构造期间获得，在析构期间释放”：
 
 ```c++
 class Lock
@@ -606,13 +826,18 @@ Mutex m; //定义所需要的互斥器
     Lock ml(&m);
     ...
 }
+```
 
+**如果底部资源Lock对象被复制，可能面临一些问题，此情况下一般会选择以下两种可能：**
+
+```c++
 Lock ml1(&m);
 Lock ml2(ml1);
 ```
 
-如果底部资源Lock对象被复制，可能面临一些问题，此情况下一般会选择以下两种可能:
-1. 抑制copying：
+1. **禁止复制：**
+
+   许多时候允许 RAIl 对象被复制并不合理。对一个像lock这样的 class这是有可能的，因为很少能够合理拥有“同步化基础器物”(synchronizationprimitives)的复件(副本)。如果复制动作对RAIclass 并不合理，你便应该禁止之。条款6告诉你怎么做：将copying操作声明为private。对ock而言看起来是这样:
 
    ```c++
    class Lock: private Uncopyable
@@ -622,7 +847,7 @@ Lock ml2(ml1);
    }
    ```
 
-2. 施行引用计数法(reference counting):
+2. **施行引用计数法(reference counting):**
 
    如果前述的 Lock打算使用 reference counting,它可以改变 mutexPtr的类型，将它从Mutex*改为tr1::shared ptr< Mutex >。然而很不幸 tr1::shared ptr的缺省行为是“当引用次数为0时删除其所指物”那不是我们所要的行为。当我们用上一个Mutex，我们想要做的释放动作是解除锁定而非删除，幸运的是tr1::shared_ptr允许指定所谓的“删除器”(deleter)，那是一个函数或函数对象(function object)，当引用次数为0时便被调用(此机能并不存在于 auto ptr—它总是将其指针删除)。删除器对tr1::shared ptr构造函数而言是可有可无的第二参数，代码如下：
 
@@ -641,13 +866,15 @@ Lock ml2(ml1);
 
    请注意，本例的 Lock class不再声明析构函数。因为没有必要。条款5说过,class析构函数(无论是编译器生成的,或用户自定的)会自动调用其 non-static成员变量(本例为mutexptr)的析构函数。而mutexPtr的析构函数会在互斤器的引用次数为0时自动调用tr1::sharedptr的删除器(本例为unlock);
 
-以上两种做法都不会复制底部资源，下面两种则是其他情况下采用的复制策略
+**以上两种做法都不会复制底部资源，下面两种则是其他情况下采用的复制策略**
 
-1. 复制底部资源。有时候，只要你喜欢，可以针对一份资源拥有其任意数量的复件(副本)。而你需要“资源管理类”的唯一理由是，当你不再需要某个复件时确保它被释放。在此情况下复制资源管理对象，应该同时也复制其所包覆的资源。也就是说，复制资源管理对象时，进行的是“深度拷贝”
-   某些标准字符串类型是由“指向heap内存”之指针构成(那内存被用来存放字符串的组成字符)。这种字符串对象内含一个指针指向一块heap内存。当这样一个字符串对象被复制，不论指针或其所指内存都会被制作出一个复件。这样的字符串展现深度复制(deepcopying)行为。
-2. 转移底部资源的拥有权。某些罕见场合下你可能希望确保永远只有一个RAI对象指向一个未加工资源(rawresource)，即使RAI对象被复制依然如此。此时资源的拥有权会从被复制物转移到目标物。一如条款13所述，这是autoptr奉行的复制意义。
+1. 复制底部资源。有时候，只要你喜欢，可以针对一份资源拥有其任意数量的复件(副本)。而你需要“资源管理类”的唯一理由是，当你不再需要某个复件时确保它被释放。在此情况下复制资源管理对象，应该同时也复制其所包覆的资源。也就是说，复制资源管理对象时，进行的是“深度拷贝”。某些标准字符串类型是由“指向heap内存”之指针构成(那内存被用来存放字符串的组成字符)。这种字符串对象内含一个指针指向一块heap内存。当这样一个字符串对象被复制，不论指针或其所指内存都会被制作出一个复件。这样的字符串展现深度复制(deepcopying)行为。
+2. 转移底部资源的拥有权。某些罕见场合下你可能希望确保永远只有一个RAI对象指向一个未加工资源(rawresource)，即使RAI对象被复制依然如此。此时资源的拥有权会从被复制物转移到目标物。一如条款13所述，这是auto_ptr奉行的复制意义。
 
-复制RAII对象必须一并复制它所管理的资源，所以资源的copying行为决定RAII对象的 copying行为。普遍而常见的RAI class copying行为是:抑制copying、施行引用计数法。不过其他行为也都可能被实现。(reference counting)
+**请记住：**
+
+- 复制RAII对象必须一并复制它所管理的资源，所以资源的copying行为决定RAII对象的 copying行为。
+- 普遍而常见的RAIl class copying行为是:抑制copying、施行引用计数法。不过其他行为也都可能被实现。(reference counting)
 
 # 条款15：在资源管理类中提供对原始资源的访问
 
@@ -678,7 +905,7 @@ Lock ml2(ml1);
          changeFontSize(f.get(), newFontSize);
          ```
 
-      2. 对于智能指针保存 factory 函数的调用结果：使用.get()成员函数执行显示转换，返回智能指针内部的原始指针的复件；
+      2. 对于智能指针保存 factory 函数的调用结果：使用.get()成员函数执行显示转换，返回智能指针内部的原始指针；
 
          ```c++
          std::tr1::shared_ptr<Investment> pInv(createInvestment());
@@ -735,28 +962,29 @@ Lock ml2(ml1);
 
 # 条款17: 以独立语句将 newed 对象置入智能指针
 
+```c++
 int priority();
-
 void processWidget(std::tr1::shared_ptr< widget > pw, int priority);
-
 processWidget(new Widget, priority()); 
+```
 
-不能通过编译，tr1::shared_ptr构造函数需要一个原始指针(raw pointer)，但该构造函数是个explicit 构造函数，无法进行隐式转换,将得自"new widget"的原始指针转换为process widget所要求的tr1::shared_ptr。
+不能通过编译，tr1::shared_ptr构造函数需要一个原始指针(raw pointer)，但该构造函数是个explicit 构造函数，无法进行隐式转换，将得自"new widget"的原始指针转换为process widget所要求的tr1::shared_ptr。
 
+```c++
 processWidget(std::tr1::shared_ptr< widget >(new Widget), priority());
+```
 
 在调用processwidget之前，编译器必须创建代码，做以下三件事：调用 priority；执行“new widget"；调用tr1::shared ptr构造函数。可以确定的是：new widget一定执行于 tr1::shared_ptr 构造函数被调用之前,因为这个表达式的结果还要被传递作为 tr1::shared_ptr 构造函数的一个实参，但对priority的调用则可以排在第一或第二或第三执行。如果编译器选择以第二顺位执行它，最终获得这样的操作序列:
 1.执行"new widget"
 2.调用 priority
 3.调用 tr1::shared ptr构造函数
 
-万一对priority的调用导致异常，new widget 返回的指针将会遗失，因为它尚未被置入tr1::shared ptr内，可能会造成资源泄露；
+万一对priority的调用导致异常，new widget 返回的指针将会遗失，因为它尚未被置入tr1::shared ptr内，可能会造成资源泄露，以独立语句将 newed 对象存储于(置入)智能指针内。如果不这样做，一旦异常被抛出，有可能导致难以察觉的资源泄露：
 
+```c++
 std::tr1::shared_ptr< widget > pw(new Widget);
-
 processWidget(pw, priority());
-
-以独立语句将 newed 对象存储于(置入)智能指针内。如果不这样做，一旦异常被抛出，有可能导致难以察觉的资源泄漏。
+```
 
 # 条款18：让接口容易被正确使用，不易被误用
 
@@ -806,7 +1034,7 @@ processWidget(pw, priority());
 
    使用class(可以封装数据，比简单实用struct要更好更安全):
 
-   ```
+   ```c++
    class Date
    {
        public:
@@ -831,13 +1059,11 @@ processWidget(pw, priority());
    Date d(Month::Mar(), Day(30), Year(1995));
    ```
 
-   
-
 3. 消除客户的资源管理责任；
 
    例如条款13导入了一个factory 函数，它返回一个指针指向 Investment 继承体系内的一个动态分配对象：Investment* createInvestment();
 
-   为避免资源泄漏，，createInvestment返回的指针最终必须被删除，但那至少开启了两个客户错误机会:没有删除指针，或删除同一个指针超过一次。
+   为避免资源泄漏，createInvestment返回的指针最终必须被删除，但那至少开启了两个客户错误机会:没有删除指针，或删除同一个指针超过一次。
 
    此时应该使用智能指针：std::tr1::shared ptr< Investment > createInvestment();
 
