@@ -22,7 +22,7 @@ class Point{
 
    第一个模型十分简单。它可能是为了尽量减低C++编译器的设计复杂度而开发出来的，赔上的则是空间和执行期的效率。在这个简单模型中，一个object是一系列的 slots，每一个 slot指向一个 members。Members 按其声明次序，各被指定一个 slot。每一个data member或function member 都有自己的一个 slot。
 
-   ![简单对象模型](F:\Cplusplus\typoraImg\简单对象模型.jpg)
+   ![简单对象模型](./typoraImg/简单对象模型.jpg)
 
    **优缺点：**
 
@@ -32,7 +32,7 @@ class Point{
 2. **表格驱动对象模型:**
    为了对所有classes的所有objects 都有一致的表达方式,另一种对象模型是把所有与 members相关的信息抽出来，放在一个datamember table 和一个member functiontable之中，class object本身则内含指向这两个表格的指针。Member function table 是一系列的 slots,每一个 slot 指出一个 member function;Datamembertable 则直接含有 data本身。
 
-   ![表格驱动对象模型](F:\Cplusplus\typoraImg\表格驱动对象模型.jpg)
+   ![表格驱动对象模型](./typoraImg/表格驱动对象模型.jpg)
 
    **优缺点：**
 
@@ -46,7 +46,7 @@ class Point{
    1. 每一个类产生出一堆指向虚拟函数的指针，放在表格之中。这个表格被称为虚拟函数!表(vtbl)中的一个实例。
    2. 每一个类对象被添加了一个指针，指向相关的虚拟表。通常这个指针被称为虚拟表。Vptr的设定(set)和重置(reset)都由每一个类的构造函数，析构函数和复制赋值运算符自动完成(我将在第5章讨论)。每一个类所关联的type_infoobject(用以支持非时间类型标识，RTTI)也经由虚拟表被指出来，通常是放在表格的第一个slot处。
 
-   ![c++对象模型](F:\Cplusplus\typoraImg\c++对象模型.jpg)
+   ![c++对象模型](./typoraImg/c++对象模型.jpg)
 
    **特性：**
 
@@ -216,7 +216,7 @@ Array<String>* pta;
 1. 一个指向地址1000的整数指针，在32位机器上，将盖地址空间1000~1003(译注:因为32位机器上的整数是4-bytes)
 2. 如果 String 是传统的8-bytes(包括一个 4-bytes 的字符指针和一个用来表示字符串长度的整数)，那么一个ZooAnimal指针将横跨地址空间1000~1015(译注:4+8+4)
 
-![独立非派生的对象的内存布局](F:\Cplusplus\typoraImg\独立非派生的对象的内存布局.png)
+![独立非派生的对象的内存布局](./typoraImg/独立非派生的对象的内存布局.png)
 
 加上多态之后：
 
@@ -242,7 +242,7 @@ Bear &rb = *pb;
 
 不管是pointer或reference 都只需要一个word的空间(在32位机器上是 4-bytes)。Bear object 需要 24 bytes，也就是ZooAnimal的16bytes加上Bear所带来的8bytes：
 
-![派生类的对象和指针布局](F:\Cplusplus\typoraImg\派生类的对象和指针布局.png)
+![派生类的对象和指针布局](./typoraImg/派生类的对象和指针布局.png)
 
 假设：
 
@@ -296,7 +296,7 @@ pza = &b;
 
 其内存布局可能如下：
 
-![内存布局](F:\Cplusplus\typoraImg\内存布局.png)
+![内存布局](./typoraImg/内存布局.png)
 
 将za或b的地址，或Pp所含的内容(也是个地址)指定给pza，显然不是问题。一个pointer或一个reference 之所以支持多态，是因为它们并不引发内存中任何“与类型有关的内存委托操作(type-dependentcommitment)”;会受到改变的只是它们所指向的内存的“大小和内容解释方式”而已。然而，任何人如果企图改变object za的大小，便会违反其定义中受契约保护的“资源需求量”。如果把整个Bearobject指定给za，则会溢出它所配置得到的内存。执行结果当然也就不对了，当一个 base class object 被直接初始化为(或是被指定为)一个 derived classobject 时，derived object 就会被切割(sliced)，以塞人较小的 base type 内存中derived type 将没有留下任何蛛丝马迹。多态于是不再呈现，而一个严格的编译器可以在编译时期解析一个“通过该 obiect 而触发的 virtual function 调用操作”，因而回避 virtual 机制。如果 virtual function 被定义为 inline，则更有效率上的大收获。
 
@@ -584,7 +584,7 @@ Bear winnie = yogi;
 
 yogi会被 default Bear constructor初始化。而在 constructor中,yogi的 vptr被设定指向 Bearclass的 virtual table(靠编译器安插的码完成)。因此，把 yogi的vptr值拷贝给winnie的vptr 是安全的。
 
-![yogi和winnie的关系](F:\Cplusplus\typoraImg\yogi和winnie的关系.png)
+![yogi和winnie的关系](./typoraImg/yogi和winnie的关系.png)
 
 当一个base class object以其 derived class的object 内容做初始化操作时其vptr复制操作也必须保证安全，例如:
 
@@ -606,7 +606,7 @@ void foo()
 }
 ```
 
-![yogi和franny的关系2](F:\Cplusplus\typoraImg\yogi和franny的关系2.png)
+![yogi和franny的关系2](./typoraImg/yogi和franny的关系2.png)
 
 **处理 Virtual Base Class Subobject**
 
@@ -647,7 +647,7 @@ Racoon little_critter = little_red
 
 在这种情况下，为了完成正确的 little_critter 初值设定，编译器必须合成个 copy constructor，安插一些码以设定 virtual base class pointer/offset 的初值(或只是简单地确定它没有被抹消)，对每一个 members 执行必要的memberwise 初始化操作，以及执行其它的内存相关工作。
 
-![little_red和little_critter的关系](F:\Cplusplus\typoraImg\little_red和little_critter的关系.png)
+![little_red和little_critter的关系](./typoraImg/little_red和little_critter的关系.png)
 
 在下面的情况中，编译器无法知道是否"bitwise copy semantics”还保持着,因为它无法知道(没有流程分析) Raccoon 指针是否指向一个真正的 Raccoon object，或是指向一个 derived class object:
 
