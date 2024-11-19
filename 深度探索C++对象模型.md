@@ -656,6 +656,409 @@ RedPanda *ptr;
 Racoon little_critter = *ptr;
 ```
 
+## 程序转化语意学
+
+**明确的初始化操作**
+
+```c++
+void foo_bar()
+{
+	X x1(x0);		//定义了x1
+	X x2 = x0;		//定义了x2
+	X x3 = X(x0);	//定义了x3
+    // ...
+}
+```
+
+必要的程序转化有两个阶段:
+
+1. 重写每一个定义，其中的初始化操作会被剥除。(译注:这里所谓的“定义”是指上述的 x1，x2，x3 三行；在严谨的C++用词中，“定义”是指“占用内存”的行为)
+2. class的 copy constructor 调用操作会被安插进去
+
+举个例子，在明确的双阶段转化之后，foo_bar() 可能看起来像这样:
+
+```c++
+//可能的程序转换
+//c++ 伪码
+void foo_bar()
+{
+	X x1;	//译注:定义被重写，初始化操作被剥除
+	X x2;
+	X x3;
+	
+	//编译器安插 X copy construction
+	x1.X::X(x0);	//表现出对 copy constructor 的调用：X::X(const X& xx);
+	x2.X::X(x0);
+	x3.X::X(x0);
+}
+```
+
+**参数的初始化**
+
+C++ Standard说，把一个 class object 当做参数传给一个函数(或是作为一个函数的返回值)，相当于以下形式的初始化操作:
+
+```c++
+X xx = arg; //其中xx代表形式参数(或返回值)而arg代表真正的参数值
+```
+
+例如：
+
+```c++
+void foo(X x0);
+
+//调用
+X xx;
+// ...
+foo(xx);
+```
+
+在编译器实现技术上，有一种策略是导入所谓的暂时性object，并调用 Copy constructor 将它初始化，然后将该暂时性 object 交给函数：
+
+```c++
+//编译器产生出来的暂时对象
+X _temp0;
+_temp0.X::X(xx);
+
+foo(_temp0);
+void foo(X& x0);
+```
+
+避免再次拷贝给形参 x0 ，foo() 的声明因而也必须被转化，形式参数必须从原先的一个 class X object 改变为一个 class X reference，像这样:
+
+```c++
+void foo(X& x0);
+```
+
+其中 class X 声明了一个 destructor，它会在 foo() 函数完成之后被调用，对付那个暂时性的 object。
+
+**返回值的初始化**
+
+已知函数定义：
+
+```c++
+X bar()
+{
+	X xx;
+	// 处理xx...
+	
+	return xx;
+}
+```
+
+Stroustrup 在 cfront 中用一个双阶段转化把 bar() 的返回值如何从局部对象 xx 中拷贝过来：
+
+1. 首先加上一个额外参数，类型是 class object 的一个 reference。这个参数将用来放置被“拷贝建构(copy constructed)“而得的返回值。
+2. 在 return 指令之前安插一个 copy constructor 调用操作，以便将欲传回之 object 的内容当做上述新增参数的初值。
+
+转换后的代码如下：
+
+```c++
+//函数转换以反映出 copy constructor
+//c++ 伪码
+void
+bar(X& _result)
+{
+	X xx;
+	//编译器所产生的 default constructor 调用操作
+	xx.X::X();
+	// ...处理 xx
+	
+	//编译器所产生的 copy constructor 调用操作
+	_result.X::XX(xx);
+	
+	return;
+}
+```
+
+现在编译器必须转换每一个  bar() 调用操作，以反映其新定义。例如:
+
+```c++
+X xx = bar()
+//被转换为
+X xx;		 //注意，不必施行 default constructor 调用操作
+bar(xx);
+
+bar().memfunc();
+//可能被转换为
+X _temp0;	//编译器产生的暂时对象
+(bar(_temp0), _temp0).memfunc();
+
+X （*pf)();
+pf = bar;
+//被转换为
+void (*pf)(X&);
+pf = bar;
+```
+
+**在使用者层面做优化**
+
+替换下面代码：
+
+```c++
+X bar(const T& y,constT& z)
+{
+	X xx;
+    // ...以y和z来处理 xx
+    
+    return xx;	
+}
+```
+
+为：
+
+```c++
+X bar(const T& y, const T& z)
+{
+	return X(y, z);
+}
+```
+
+第一份代码那会要求 xx 被“memberwise”地拷贝到编译器所产生的 _result 之中。而第二份代码的定义会被编译器转换为：
+
+```c++
+//c++ 伪码
+void
+bar(X& _result, const T& y, const T&z)
+{
+	_result.X::X(y, z);
+	return;
+}
+```
+
+_result 被直接计算出来，而不是经由 copy constructor 拷贝而得!
+
+不过这种解决方法受到了某种批评，怕那些特殊计算用途的 constructor 可能会大量扩散，在这个层面上，class 的设计是以效率考虑居多，而不是以“支持抽象化”为优先。
+
+**在编译层面做优化**
+
+在一个如 bar() 这样的函数中，所有的 return 指令传回相同的具名数值，因此编译器有可能自己做优化，方法是以 _result: 参数取代 named return vaue.例如下面的 bar() 定义:
+
+```
+X bar()
+{
+	X xx;
+	// 处理xx...
+	
+	return xx;
+}
+```
+
+编译器把其中的 xx 以 _result 取代:
+
+```c++
+void
+bar(X& _result)
+{
+	// default constructor 被调用
+	// c++ 伪码
+	_result.X::X();
+	
+	// ...直接处理 _result
+	
+	return;
+}
+```
+
+考虑下面的代码：
+
+```c++
+class test
+{
+	friend test foo(double);
+	public:
+		test()
+		{
+			memset(array, 0, 100 * sizeof(double));
+		}
+	private:
+		double array[100];
+}
+
+test foo(double val)
+{
+	test local;
+	local.array[0] = val;
+	local.array[99] = val;
+	
+	return local;
+}
+
+//有一个 main() 函数调用上述foo() 函数一千万次:
+int main()
+{
+    for(int cnt = 0; cnt < 1000000; cnt++)
+        test t = foo(double(cnt));
+    return 0;
+}
+```
+
+这个程序的第一个版本不能实施NRV优化，因为 test class 缺少一个 copy constructor。第二个版本加上一个inline copy constructor 如下:
+
+```c++
+inline
+test::test(const test& t)
+{
+	memcpy(this, &t, sizeof(test));
+}
+```
+
+这个 copy constructor 的出现激活了 C++ 编译器中的 NRV 优化。现在编译器无论是否明确定义拷贝构造函数都会进行NRV优化，参考：
+
+1. [第二章构造函数语义学--关于NRV优化和copy constructor-CSDN博客](https://blog.csdn.net/aiyun1242/article/details/101811414)
+2. [NRV优化详解-CSDN博客](https://blog.csdn.net/gettogetto/article/details/52863376)
+3. [具名返回值优化（NRV） - 流云cpp - 博客园](https://www.cnblogs.com/lycpp/p/16822425.html)
+
+虽然NRV优化提供了重要的效率改善，它还是饱受批评。
+
+1. 第一个原因是优化由编译器默默完成，而它是否真的被完成，并不十分清楚(因为很少有编译器会说明其实现程度，或是否实现）（可以忽略这个原因，现代编译器基本都会完成)；
+
+2. 第二个原因是，一旦函数变得比较复杂，优化也就变得比较难以施行。在cfont中，只有当所有的 named return 指令句发生于函数的 top level 时，优化才施行。如果导入“a nested local block with a return statement”，cfront就会静静地将优化关闭，许多程序员主张对于这种情况应该以“特殊化的 constructor”策略取代之。
+
+3. 第三个原因则是从相反的方向出发。某些程序员真的不喜欢应用程序被优化，想象你已经摆好了你的 copy constructor 的阵势，使你的程序“以 copying 方式产生出一个 object 时”，对称地调用 destructor，例如:
+
+   ```c++
+   void foo()
+   {
+   	//这里希望有一个 copy constructor
+   	X xx = bar();
+   	// ...
+   	//这里调用 destructor
+   }
+   ```
+
+   在此情况下，对称性被优化给打破了，程序虽然比较快，却是错误的。
+
+**Copy Constructor：要还是不要 ?**
+
+已知 3D 坐标点类：
+
+```c++
+class Point3D
+{
+	public:
+		Point3D(float x, float y, float z);
+		//...
+    	Point3d operator+(const Point3d&, const Point3d&);
+	private:
+		float _x, _y, _z;
+};
+```
+
+上述 class 的 default copy constructor 被视为 trivial。它既没有任何 member(或base)class objects 带有 copy constructor，也没任何的 virtual base class 或 virtual function。所以，默认情况下，在调用 operator+ 时，一个 Point3d class object 的“memberwise初始化操作会导致“bitwise copy”，这样的效率很高，也相当安全。若启动编译器的NRV优化，必须显示定义 copy constructor ，如下：
+
+```c++
+Point3d::Point(const Point3d & rhs)
+{
+	_x = rhs._x;
+	_y = rhs._y;
+	_z = rhs._z;
+}
+```
+
+但这样更有效率：
+
+```c++
+Point3d::Point(const Point3d & rhs)
+{
+	memcpy(this, &rhs, sizeof(Point3d));
+}
+```
+
+同样的，现代 c++ 编译器无论是否明确定义拷贝构造函数都会进行NRV优化，直接在返回值上构造，因此如果想使用第二个明确定义的拷贝构造版本，需要禁止编译器的NRV优化。例如：
+
+```c++
+#include <iostream>
+#include <cstring>  // For memcpy
+
+using namespace std;
+
+class Point3d {
+public:
+    float _x, _y, _z;
+
+    // 构造函数
+    Point3d(float x, float y, float z) : _x(x), _y(y), _z(z) 
+    {
+        cout << "constructor" << endl;
+    }
+    inline Point3d(const Point3d& rhs)
+    {
+        memcpy(this, &rhs, sizeof(Point3d));
+        cout << "copy constructor" << endl;
+    }
+    // 显示坐标
+    void show() const {
+        std::cout << "Point(" << _x << ", " << _y << ", " << _z << ")\n";
+    }
+};
+
+// 返回一个 Point3d 对象
+Point3d foo() {
+    Point3d p(1.0f, 2.0f, 3.0f);
+    return p;  // 编译器将会使用 NRV 优化
+}
+
+int main() {
+    // 创建一个 Point3d 对象
+    Point3d pt1 = foo();  // 调用 foo 返回一个对象
+
+    pt1.show();  // 输出 "Point(1.0, 2.0, 3.0)"
+    return 0;
+}
+
+//是否明确定义拷贝构造，输出的一样
+//constructor
+//Point(1, 2, 3)
+
+//g++支持禁用掉返回值优化，只需要添加编译参数-fno-elide-constructors即可
+//此时的输出如下：
+//constructor
+//copy constructor
+//Point(1, 2, 3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

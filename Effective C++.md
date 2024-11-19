@@ -1127,7 +1127,7 @@ processWidget(pw, priority());
 
    参数w会被构造成为一个 window对象;它是 passed by value，造成 wwsb“之所以是个 windowwithScrollBars 对象”的所有特化信息都会被切除。在 printNameAndDisplay函数内不论传递过来的对象原本是什么类型，参数w就像一个 window对象(因为其类型是 window).因此在 printNameAndDisplay内调用 display调用的总是 window::display，绝不会是windowwithScrollBars::display。
 
-2. 如果窥视 C++编译器的底层，你会发现，references 往往以指针实现出来，因此pass by reference通常意味真正传递的是指针。因此如果你有个对象属于内置类型(例如 int)，pass by value往往比 pass byreference的效率高些。对内置类型而言，当你有机会选择采用 pass-by-value或pass-by-reference-to-const时，选择 pass-by-.value并非没有道理。这个忠告也适用于STL的迭代器和函数对象，因为习惯上它们都被设计为passed by value。
+2. 如果窥视 C++编译器的底层，你会发现，references 往往以指针实现出来，因此pass by reference通常意味真正传递的是指针。因此如果你有个对象属于内置类型(例如 int)，pass by value往往比 pass by reference的效率高些。对内置类型而言，当你有机会选择采用 pass-by-value或pass-by-reference-to-const时，选择 pass-by-value并非没有道理。这个忠告也适用于STL的迭代器和函数对象，因为习惯上它们都被设计为passed by value。
 
 # 条款21：必须返回对象时，别妄想返回其reference
 
@@ -1145,7 +1145,7 @@ class Rational
 };
 ```
 
-这个版本的operator*系以byvalue方式返回其计算结果(一个对象)。如果你完全不担心该对象的构造和析构成本，你其实是明显逃避了你的专业责任。若非必要没有人会想要为这样的对象付出太多代价，问题是需要付出任何代价吗？考虑下面的代码带来的后果：
+这个版本的operator*系以by value方式返回其计算结果(一个对象)。如果你完全不担心该对象的构造和析构成本，你其实是明显逃避了你的专业责任。若非必要没有人会想要为这样的对象付出太多代价，问题是需要付出任何代价吗？考虑下面的代码带来的后果：
 
 1. 绝不要返回 pointer 或reference 指向一个 local stack对象；
 
@@ -1157,7 +1157,7 @@ class Rational
    }
    ```
 
-   你可以拒绝这种做法，因为你的目标是要避免调用构造函数，而resu1t却必须像任何对象一样地由构造函数构造起来。更严重的是:这个函数返回一个reference 指向result，但result是个local对象，而local对象在函数退出前被销毁了。
+   你可以拒绝这种做法，因为你的目标是要避免调用构造函数，而result却必须像任何对象一样地由构造函数构造起来。更严重的是:这个函数返回一个reference 指向result，但result是个local对象，而local对象在函数退出前被销毁了。
 
 2. 绝不要返回 reference 指向一个 heap-allocated 对象；
 
@@ -1175,7 +1175,7 @@ class Rational
 
    w = x * y * z;
 
-   *这里，同一个语句内调用了两次operator，因而两次使用new，也就需要两次delete。但却没有合理的办法让 operator使用者进行那些delete 调用，因为没有合理的办法让他们取得operator返回的references 背后隐藏的那个指针。这绝对导致资源泄漏。**
+   这里，同一个语句内调用了两次operator，因而两次使用new，也就需要两次delete。但却没有合理的办法让 operator使用者进行那些delete 调用，因为没有合理的办法让他们取得operator返回的references 背后隐藏的那个指针。这绝对导致资源泄漏。
 
 3. 绝不要返回pointer 或reference 指向一个 local static 对象而有可能同时需要多个这样的对象；
 
@@ -1202,18 +1202,24 @@ class Rational
 
    写成等价的函数形式：if(operator==(operator * (a, b), operator * (c, d)));
 
-   注意，在operator==被调用前，已有两个operator*调用式起作用，每一个都返回 reference 指向 operator * 内部定义的 static Rational对象。因此 operator== 被要求将“operator *内的 static Rational对象值”拿来和“operator *内的 staticRationa对象值”比较，结果必然相等。(译注:这里我补充说明:两次 operator *调用的确各自改变了 static Rational对象值，但由于它们返回的都是reference，因此调用端看到的永远是 static Rational对象的“现值”。)
+   注意，在operator==被调用前，已有两个operator*调用式起作用，每一个都返回 reference 指向 operator * 内部定义的 static Rational对象。因此 operator== 被要求将“operator *内的 static Rational对象值”拿来和“operator *内的 static Rationa对象值”比较，结果必然相等。(译注:这里我补充说明:两次 operator *调用的确各自改变了 static Rational对象值，但由于它们返回的都是reference，因此调用端看到的永远是 static Rational对象的“现值”。)
 
    如果一个 static 不够，或许一个 static array可以，但首先你必须选择array大小n。如果n太小，你可能会耗尽“用以存储函数返回值”的空间，那么情况就回到了我们刚才讨论过的单static 设计。但如果n太大，会因此降低程序效率，因为array内的每一个对象都会在函数第一次被调用时构造完成。那么将消耗n个构造函数和n个析构函数---即使我们所讨论的函数只被调用一次。条款4已经为“在单线程环境中合理返回reference指向一个 local static 对象”提供了一份设计实例。
 
 # 条款22：将成员变量声明为 private
 
-1. 切记将成员变量声明为private。这可赋予客户访问数据的一致性、可细微划分访问控制、允诺约束条件获得保证，并提供class作者以充分的实现弹性。
-2. protected 并不比 public 更具封装性，因为派生类的成员可以直接访问基类的保护成员，但不能直接访问基类的私有成员。对于外部世界来说， 保护成员的行为与私有成员相似；但对于派生类来说，保护成员的行为与公有成员相似。
+1. 切记将成员变量声明为private。这可赋予客户
+   1. 访问数据的一致性：客户代码不会直接访问和修改数据，导致不一致或意外的状态；
+   2. 可细微划分访问控制：public 接口可以控制访问的权限（只读，只写...）；
+   3. 允诺约束条件获得保证：使用 private 成员变量允许类的设计者在修改或访问数据时强制执行特定的约束条件。这确保了对象始终处于合法状态；
+   4. 并提供class作者以充分的实现弹性：public 接口可以灵活改变其实现，不会对客户代码产生影响；
+
+2. 一旦 public 接口被使用，就意味着客户代码可能与其紧密耦合，改变它会带来兼容性问题和不小的风险。
+3. protected 并不比 public 更具封装性，因为派生类的成员可以直接访问基类的保护成员，但不能直接访问基类的私有成员。对于外部世界来说， 保护成员的行为与私有成员相似；但对于派生类来说，保护成员的行为与公有成员相似。
 
 # 条款23：宁以non-member、non-friend 替换 member 函数
 
-宁可拿 non-member non-friend 函数替换 member 函数。这样做可以增加封装性、裹弹性和机能扩充性：
+宁可拿 non-member， non-friend 函数替换 member 函数。这样做可以增加封装性、裹弹性和机能扩充性：
 
 1. 封装性：
 
@@ -1267,7 +1273,6 @@ class Rational
     	Rational(int numerator = 0, int denominator = 1); //允许隐式转换
     	int numerator() const;
     	int denominator() const;
-    	const Rational operator*(const Rational& lhs, const Rational& rhs)
     private:
     	...
 };
@@ -1278,7 +1283,7 @@ result = oneFourth * 2; //valid
 result = 2 * oneFourth; //invalid
 ```
 
-只有当参数被列于参数列(parameterlist)内，这个参数才是隐式类型转换的合格参与者。地位相当于“被调用之成员函数所隶属的那个对象”---即this 对象--的那个隐喻参数，绝不是隐式转换的合格参与者。这就是为什么上述第一次调用可通过编译，第二次调用则否，因为第一次调用伴随一个放在参数列内的参数，第二次调用则否。
+只有当参数被列于参数列(parameterlist)内，而且构造函数非 explicit 的情况下，这个参数才是隐式类型转换的合格参与者。地位相当于“被调用之成员函数所隶属的那个对象”---即this 对象--的那个隐喻参数，绝不是隐式转换的合格参与者。这就是为什么上述第一次调用可通过编译，第二次调用则否，因为第一次调用伴随一个放在参数列内的参数，第二次调用则否。
 
 ```c++
 class Rational
@@ -1294,10 +1299,12 @@ const Rational operator*(const Rational& lhs, const Rational& rhs)
 
 operator* 是否应该成为Rational class 的一个友元函数呢？
 
-就本例而言答案是否定的，因为operator*可以完全藉由Rational的public 接口完成任务，上面代码已表明此种做法。这导出一个重要的观察:member函数的反面是 non-member函数，不是friend函数。
+就本例而言答案是否定的，因为operator*可以完全藉由Rational的public 接口完成任务，上面代码已表明此种做法。这导出一个重要的观察:member函数的反面是 non-member函数，不是friend函数。*太多C++ 程序员假设，如果一个“与某 class相关”的函数不该成为一个 member(也许由于其所有实参都需要类型转换，例如先前的 Rational 的 operator函数)，就该是个fiend。本例表明这样的理由过于牵强无论何时如果你可以避免 fiend 函数就该避免，因为就像真实世界一样，朋友带来的麻烦往往多过其价值。当然有时候fiend有其正当性，但这个事实依然存在:不能够只因函数不该成为member，就自动让它成为friend。
 
-1. 如果你需要为某个函数的所有参数(包括被 this 指针所指的那个隐喻参数)进行类型转换，那么这个函数必须是个non-member。
-2. 如果函数不需要访问类的私有成员，只需要通过公共接口来操作对象，选择非成员函数。如果你希望保持类的封装性，避免直接暴露私有成员，使用非成员函数。如果一个函数必须访问类的私有成员，并且这种访问是必要的，且没有提供返回私有成员的接口，使用友元函数。如果该函数在逻辑上属于类的一部分，但因为需要对两个类进行对称操作而不能成为成员函数，且没有提供返回私有成员的接口，使用友元函数。
+1. 如果你需要为某个函数的所有参数(包括被 this 指针所指的那个隐喻参数)进行类型转换，那么这个函数必须是个非成员函数r。
+2. 如果函数不需要访问类的私有成员，只需要通过公共接口来操作对象，选择非成员函数。
+3. 如果你希望保持类的封装性，避免直接暴露私有成员，使用非成员函数。
+4. 如果该函数在逻辑上属于类的一部分，但因为需要对类进行对称操作而不能成为成员函数，且没有提供返回私有成员的接口，使用友元函数。
 
 # 条款25：考虑写出一个不抛异常的 swap 函数
 
