@@ -809,7 +809,7 @@
    int main(void){ 
    
        enum bits{one = 1, two = 2, four = 4, eight = 8};
-       enum bigstep{first, second = 100, third}; //first = 1, third = 101
+       enum bigstep{first, second = 100, third}; //first = 0, third = 101
        enum s{zero, null = 0,one ,numero_uno = 1}; //zero = 0, one = 1
        
        return 0;
@@ -4340,7 +4340,7 @@ class String
 		friend bool operator=(const String &st, const String &st2);
 		friend ostream & operator<<(ostream & os, const String & st);
 		friend istream & operator>>(istream & is, String & st);
-		static int HowMany(); //静态类成员函数，首先，不能通过对象调用静态成员函数；实际上，静态成员函数甚至不能使用this指针。如果静态成员函数是在公有部分声明的，则可以使用类名和作用域解析运算符来调用它，而不实例化对象（枚举类型和嵌套类也同理，但要访问嵌套类的非静态公共成员，则必须实例化嵌套类）。其次，由于静态成员函数不与特定的对象相关联，因此只能使用静态数据成员。例如，静态方法HowMany()可以访问静态成员num_string，但不能访问str和len(非静态成员)。同样，也可以使用静态成员函数设置类级（classwide）标记，以控制某些类接口的行为。例如，类级标记可以控制显示类内容的方法所使用的格式。
+		static int HowMany(); //静态类成员函数，首先，不能通过对象调用静态成员函数；实际上，静态成员函数甚至不能使用this指针。如果静态成员函数是在公有部分声明的，则可以使用类名和作用域解析运算符来调用它，而不实例化对象（枚举类型和嵌套类也同理，但要访问嵌套类的非静态公共成员，则必须实例化嵌套类）。其次，由于静态成员函数不与特定的对象相关联，因此只能使用静态数据成员。例如，静态方法HowMany()可以访问静态成员num_string，但不能访问str和len(非静态成员)。而且静态函数不能被声明为 const，因为静态函数不依赖于 this 指针，而 const 修饰的是 this 指针。同样，也可以使用静态成员函数设置类级（classwide）标记，以控制某些类接口的行为。例如，类级标记可以控制显示类内容的方法所使用的格式。
 		
 }；
 
@@ -4958,7 +4958,7 @@ class Brass
 
 ​	protected:
 
-​		doublebalance;
+​		double balance;
 
 ...
 

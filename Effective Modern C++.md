@@ -1,6 +1,6 @@
-# Effective Modern C++
+Effective Modern C++
 
-## 条款一：理解模板类型推导
+# 条款一：理解模板类型推导
 
 ```c++
 template<typename T>
@@ -94,7 +94,7 @@ const char* const ptr =         //ptr是一个常量指针，指向常量对象
 f(ptr);                         //传递const char * const类型的实参
 ```
 
-在这里，解引用符号（*）的右边的`const`表示`ptr`本身是一个`const`：`ptr`不能被修改为指向其它地址，也不能被设置为null（解引用符号左边的`const`表示`ptr`指向一个字符串，这个字符串是`const`，因此字符串不能被修改）。当`ptr`作为实参传给`f`，组成这个指针的每一比特都被拷贝进`param`。像这种情况，`ptr`自身的值会被传给形参，根据类型推导的第三条规则，`ptr`自身的常量性`const`ness将会被省略，所以`param`是`const char*`，也就是一个可变指针指向`const`字符串。在类型推导中，这个指针指向的数据的常量性`const`ness将会被保留，但是当拷贝`ptr`来创造一个新指针`param`时，`ptr`自身的常量性`const`ness将会被忽略。
+在这里，解引用符号（*）的右边的`const`表示`ptr`本身是一个`const`：`ptr`不能被修改为指向其它地址，也不能被设置为null（解引用符号左边的`const`表示`ptr`指向一个字符串，这个字符串是`const`，因此字符串不能被修改）。当`ptr`作为实参传给`f`，组成这个指针的每一比特都被拷贝进`param`。像这种情况，`ptr`自身的值会被传给形参，根据类型推导的第三条规则，`ptr`自身的常量性`constness`将会被省略，所以`param`是`const char*`，也就是一个可变指针指向`const`字符串。在类型推导中，这个指针指向的数据的常量性`constness`将会被保留，但是当拷贝`ptr`来创造一个新指针`param`时，`ptr`自身的常量性`constness`将会被忽略。
 
 **数组实参**：
 
@@ -164,16 +164,23 @@ constexpr std::size_t arraySize(T (&)[N]) noexcept      //constexpr
 
 在[Item15](https://cntransgroup.github.io/EffectiveModernCppChinese/3.MovingToModernCpp/item15.html)提到将一个函数声明为`constexpr`使得结果在编译期间可用。这使得我们可以用一个花括号声明一个数组，然后第二个数组可以使用第一个数组的大小作为它的大小，就像这样：
 
-```cpp
-int keyVals[] = { 1, 3, 7, 9, 11, 22, 35 };             //keyVals有七个元素
+```c++
+#include <iostream>
+#include <vector>
+using namespace std;
 
-int mappedVals[arraySize(keyVals)];                     //mappedVals也有七个
-```
+template<typename T, std::size_t N>
+constexpr std::size_t arraySize(T (&)[N]) noexcept
+{
+    return N;
+}
 
-当然作为一个现代C++程序员，你自然应该想到使用`std::array`而不是内置的数组：
-
-```cpp
-std::array<int, arraySize(keyVals)> mappedVals;         //mappedVals的大小为7
+int main()
+{
+    int keyVals[] = {1, 3, 7, 9, 11, 22, 35};       //keyVals有七个元素
+    vector<int> mappedVals(arraySize(keyVals));     //mappedVals也有七个
+    cout << mappedVals.size() << endl;              //mappedVals的大小为7
+}
 ```
 
 至于`arraySize`被声明为`noexcept`，会使得编译器生成更好的代码，具体的细节请参见Item14。
@@ -198,7 +205,7 @@ f2(someFunc);                       //param被推导为指向函数的引用，
                                     //类型是void(&)(int, double)
 ```
 
-## 条款二：理解auto类型推导
+# 条款二：理解auto类型推导
 
 Item1基于`ParamType`——在函数模板中`param`的类型说明符——的不同特征，把模板类型推导分成三个部分来讨论。在使用`auto`作为类型说明符的变量声明中，类型说明符代替了`ParamType`，因此Item1描述的三个情景稍作修改就能适用于auto：
 
@@ -278,7 +285,7 @@ void f(T param);                //形参声明的模板
 f({ 11, 23, 9 });               //错误！不能推导出T
 ```
 
-然而如果在模板中指定`T`是`std::initializer_list<T>`而留下未知`T`,模板类型推导就能正常工作：
+然而如果在模板中指定`T`是`std::initializer_list<T>`而留下未知的参数模板`T`,模板类型推导就能正常工作：
 
 ```c++
 template<typename T>
@@ -304,7 +311,7 @@ auto resetV =
 resetV({ 1, 2, 3 });            //错误！不能推导{ 1, 2, 3 }的类型
 ```
 
-## 条款三：理解decltype
+# 条款三：理解decltype
 
 给一个名字或者表达式`decltype`就会告诉你这个名字或者表达式的类型。通常，它会精确的告诉你你想要的结果。
 
@@ -364,7 +371,7 @@ std::deque<std::string> makeStringDeque();      //工厂函数
 auto s = authAndAccess(makeStringDeque(), 5);
 ```
 
-要想支持这样使用`authAndAccess`载是一个不错的选择（一个函数重载声明为左值引用，另一个声明为右值引用），但是我们就不得不维护两个重载函数。另一个方法是使`authAndAccess`的引用可以绑定左值和右值，Item24解释了那正是通用引用能做的，所以我们这里可以使用通用引用进行声明：
+要想支持这样使用`authAndAccess`重载是一个不错的选择（一个函数重载声明为左值引用，另一个声明为右值引用），但是我们就不得不维护两个重载函数。另一个方法是使`authAndAccess`的引用可以绑定左值和右值，Item24解释了那正是通用引用能做的，所以我们这里可以使用通用引用进行声明：
 
 ```c++
 template<typename Containter, typename Index>   //现在c是通用引用
@@ -419,7 +426,7 @@ decltype(auto) f2()
 - 对于`T`类型的不是单纯的变量名的左值表达式，`decltype`总是产出`T`的引用即`T&`。
 - C++14支持`decltype(auto)`，就像`auto`一样，推导出类型，但是它使用`decltype`的规则进行推导。
 
-## 条款四：学会查看类型推导结果
+# 条款四：学会查看类型推导结果
 
 **std::type_info::name：**
 
@@ -495,14 +502,28 @@ param = class Widget const * const &
 
 `boost::typeindex::type_id_with_cvr`获取一个类型实参（我们想获得相应信息的那个类型），它不消除实参的`const`，`volatile`和引用修饰符（因此模板名中有“`with_cvr`”）。结果是一个`boost::typeindex::type_index`对象，它的`pretty_name`成员函数输出一个`std::string`，包含我们能看懂的类型表示。
 
-## 条款五：优先考虑auto而非显示类型声明
+# 条款五：优先考虑auto而非显示类型声明
 
 `auto`变量从初始化表达式中推导出类型，所以我们必须初始化。
 
-**声明一个局部变量，类型是一个闭包，闭包的类型只有编译器知道，因此使用auto类型推导技术：**
+**声明一个局部变量，类型是一个闭包，闭包的类型只有编译器知道，使用 iterator_traits 技术：**
 
 ```c++
-template<typename It>           //如之前一样
+template<typename It>           //对从b到e的所有元素使用
+void dwim(It b, It e)           //dwim（“do what I mean”）算法
+{
+    while (b != e) {
+        typename std::iterator_traits<It>::value_type
+        currValue = *b;
+        …
+    }
+}
+```
+
+使用auto类型推导技术
+
+```c++
+template<typename It>           
 void dwim(It b,It e)
 {
     while (b != e) {
@@ -524,7 +545,7 @@ derefUPLess = [](const std::unique_ptr<Widget> &p1,
                 { return *p1 < *p2; };
 ```
 
-语法冗长不说，还需要重复写很多形参类型，使用`std::function`还不如使用`auto`。用`auto`声明的变量保存一个和闭包一样类型的（新）闭包，因此使用了与闭包相同大小存储空间。实例化`std::function`并声明一个对象这个对象将会有固定的大小。这个大小可能不足以存储一个闭包，这个时候`std::function`的构造函数将会在堆上面分配内存来存储，这就造成了使用`std::function`比`auto`声明变量会消耗更多的内存。并且通过具体实现我们得知通过`std::function`调用一个闭包几乎无疑比`auto`声明的对象调用要慢。换句话说，`std::function`方法比`auto`方法要更耗空间且更慢，还可能有*out-of-memory*异常。并且正如上面的例子，比起写`std::function`实例化的类型来，使用`auto`要方便得多：
+语法冗长不说，还需要重复写很多形参类型，使用`std::function`还不如使用`auto`。用`auto`声明的变量保存一个和闭包一样类型的（新）闭包，因此使用了与闭包相同大小存储空间。`std::function<void()>` 通常会将闭包存储在堆上，实例化`std::function`并声明一个对象这个对象将会有固定的大小，这个大小可能不足以存储一个闭包，这个时候`std::function`的构造函数将会在堆上面分配内存来存储，这就造成了使用`std::function`比`auto`声明变量会消耗更多的内存。并且通过具体实现我们得知通过`std::function`调用一个闭包几乎无疑比`auto`声明的对象调用要慢。换句话说，`std::function`方法比`auto`方法要更耗空间且更慢，还可能有*out-of-memory*异常。并且正如上面的例子，比起写`std::function`实例化的类型来，使用`auto`要方便得多：
 
 c++11版本：
 
@@ -535,7 +556,7 @@ auto derefUPLess =
     { return *p1 < *p2; };                      //比较函数
 ```
 
-c++14版本：
+c++14版本（*lambda*表达式中的形参也可以使用`auto`）：
 
 ```c++
 auto derefLess =                                //C++14版本
@@ -555,7 +576,7 @@ unsigned sz = v.size();
 `v.size()`的标准返回类型是`std::vector<int>::size_type`，但是只有少数开发者意识到这点。`std::vector<int>::size_type`实际上被指定为无符号整型，所以很多人都认为用`unsigned`就足够了，写下了上述的代码。这会造成一些有趣的结果。举个例子，在Windows 32-bit上`std::vector<int>::size_type`和`unsigned`是一样的大小，但是在Windows 64-bit上`std::vector<int>::size_type`是64位，`unsigned`是32位。这意味着这段代码在Windows 32-bit上正常工作，但是当把应用程序移植到Windows 64-bit上时就可能会出现一些问题。所以使用`auto`可以确保你不需要浪费时间：
 
 ```c++
-auto sz =v.size();                      //sz的类型是std::vector<int>::size_type
+auto sz = v.size();                      //sz的类型是std::vector<int>::size_type
 ```
 
 再看下面的代码：
@@ -579,7 +600,7 @@ for(const auto& p : m)
 }
 ```
 
-## 条款六：auto推导若非己愿，使用显示类型初始化惯用法
+# 条款六：auto推导若非己愿，使用显示类型初始化惯用法
 
 假如我有一个函数，参数为`Widget`，返回一个`std::vector<bool>`，这里的`bool`表示`Widget`是否提供一个独有的特性。更进一步假设第5个*bit*表示`Widget`是否具有高优先级，我们可以写这样的代码：
 
@@ -592,9 +613,7 @@ bool highPriority = features(w)[5];
 //这里，features返回一个std::vector<bool>对象后再调用operator[]，operator[]将会返回一个std::vector<bool>::reference对象，然后再通过隐式转换赋值给bool变量highPriority。highPriority因此表示的是features返回的std::vector<bool>中的第五个bit，这也正如我们所期待的那样。
 …
 processWidget(w, highPriority);         //根据它的优先级处理w
-
 auto highPriority = features(w)[5];     //w高优先级吗？
-
 processWidget(w,highPriority);          //未定义行为！
 //同样的，features返回一个std::vector<bool>对象，再调用operator[]，operator[]将会返回一个std::vector<bool>::reference对象，但是现在这里有一点变化了，auto推导highPriority的类型为std::vector<bool>::reference，但是highPriority对象没有第五bit的值。
 ```
@@ -627,7 +646,7 @@ auto ep = static_cast<float>(calcEpsilon());
 - 不可见的代理类可能会使`auto`从表达式中推导出“错误的”类型
 - 显式类型初始器惯用法强制`auto`推导出你想要的结果
 
-## 条款七：区别使用()和{}创建对象
+# 条款七：区别使用()和{}创建对象
 
 **内置类型间隐式的变窄转换：**
 
@@ -840,7 +859,7 @@ doSomeWork<std::vector<int>>(10, 20);
 
 如果`doSomeWork`创建`localObject`时使用的是圆括号，`std::vector`就会包含10个元素。如果`doSomeWork`创建`localObject`时使用的是花括号，`std::vector`就会包含2个元素。哪个是正确的？`doSomeWork`的作者不知道，只有调用者知道。
 
-## 条款八：优先考虑nullptr而非0和NULL
+# 条款八：优先考虑nullptr而非0和NULL
 
 在C++98中，如果给下面的重载函数传递`0`或`NULL`，它们绝不会调用指针版本的重载函数：
 
@@ -857,7 +876,7 @@ f(NULL);            //可能不会被编译，一般来说调用f(int)，
 
 而`f(NULL)`的不确定行为是由`NULL`的实现不同造成的。如果`NULL`被定义为`0L`（指的是`0`为`long`类型），这个调用就具有二义性，因为从`long`到`int`的转换或从`long`到`bool`的转换或`0L`到`void*`的转换都同样好。有趣的是源代码**表现出**的意思（“我使用空指针`NULL`调用`f`”）和**实际表达出**的意思（“我是用整型数据而不是空指针调用`f`”）是相矛盾的。
 
-`nullptr`的优点是它不是整型。老实说它也不是一个指针类型，但是你可以把它认为是**所有**类型的指针。`nullptr`的真正类型是`std::nullptr_t`，在一个完美的循环定义以后，`std::nullptr_t`又被定义为`nullptr`。`std::nullptr_t`可以隐式转换为指向任何内置类型的指针，这也是为什么`nullptr`表现得像所有类型的指针。
+`nullptr`的优点是它不是整型。老实说它也不是一个指针类型，但是你可以把它认为是**所有**类型的指针。`nullptr`的真正类型是`std::nullptr_t`。`std::nullptr_t`可以隐式转换为指向任何内置类型的指针，这也是为什么`nullptr`表现得像所有类型的指针。
 
 使用`nullptr`调用`f`将会调用`void*`版本的重载函数，因为`nullptr`不能被视作任何整型：
 
@@ -914,7 +933,7 @@ auto result3 = lockAndCall(f3, f3m, nullptr);   //没问题
 - 优先考虑`nullptr`而非`0`和`NULL`
 - 避免重载指针和整型
 
-## 条款九：优先考虑别名声明而非typedef
+# 条款九：优先考虑别名声明而非typedef
 
 别名声明可以被模板化（这种情况下称为别名模板*alias template*s）但是`typedef`不能。这使得C++11程序员可以很直接的表达一些C++98中只能把`typedef`嵌套进模板化的`struct`才能表达的东西。
 
@@ -973,7 +992,7 @@ std::add_lvalue_reference<T>::type  //从T中产出T&
 
 如果你在一个模板内部将他们施加到类型形参上（实际代码中你也总是这么用），你也需要在它们前面加上`typename`。因为这些C++11的*type traits*是通过在`struct`内嵌套`typedef`来实现的。
 
-对于C++11的类型转换`std::`transformation`<T>::type`在C++14中变成了`std::`transformation`_t`：：
+对于C++11的类型转换`std::transformation<T>::type`在C++14中变成了`std::transformation_t`：：
 
 ```c++
 std::remove_const<T>::type          //C++11: const T → T 
@@ -1006,7 +1025,7 @@ using add_lvalue_reference_t =
 - 别名模板避免了使用“`::type`”后缀，而且在模板中使用`typedef`还需要在前面加上`typename`
 - C++14提供了C++11所有*type traits*转换的别名声明版本
 
-## 条款十：优先考虑限域enum而非未限域enum
+# 条款十：优先考虑限域enum而非未限域enum
 
 **限域`enum`枚举名泄露：**
 
@@ -1103,7 +1122,7 @@ enum Status { good = 0,
 
 为了高效使用内存，编译器通常在确保能包含所有枚举值的前提下为`enum`选择一个最小的底层类型。在一些情况下，编译器将会优化速度，舍弃大小，这种情况下它可能不会选择最小的底层类型，但它们当然希望能够针对大小进行优化。为此，C++98只支持`enum`定义（所有枚举名全部列出来）；`enum`声明是不被允许的。这使得编译器能在使用之前为每一个`enum`选择一个底层类型。
 
-但是不能前置声明最大的缺点莫过于它可能增加编译依赖，比如上面的`Status`，这种`enum`很有可能用于整个系统，因此系统中每个包含这个头文件的组件都会依赖它。如果引入一个新状态值那么可能整个系统都得重新编译，即使只有一个子系统——或者只有一个函数——使用了新添加的枚举名。C++11中的前置声明`enum`s可以解决这个问题。
+但是不能前置声明最大的缺点莫过于它可能增加编译依赖，比如上面的`Status`，这种`enum`很有可能用于整个系统，因此系统中每个包含这个头文件的组件都会依赖它。如果引入一个新状态值那么可能整个系统都得重新编译，即使只有一个子系统——或者只有一个函数——使用了新添加的枚举名。C++11中的前置声明`enum`可以解决这个问题。
 
 在C++11中，限域`enum`的底层类型总是已知的，而对于非限域`enum`，你可以指定它：
 
@@ -1147,7 +1166,7 @@ enum class Status: std::uint32_t { good = 0,
 
 假设我们有一个*tuple*保存了用户的名字，email地址，声望值：
 
-```
+```c++
 using UserInfo =                //类型别名，参见Item9
     std::tuple<std::string,     //名字
                std::string,     //email地址
@@ -1181,7 +1200,7 @@ auto val =
         (uInfo);
 ```
 
-`std::get`是一个模板（函数），需要你给出一个`std::size_t`值的模板实参（注意使用`<>`而不是`()`），因此将枚举名变换为`std::size_t`值的函数必须**在编译期**产生这个结果。如Item15提到的，那必须是一个`constexpr`函数。
+为避免这种冗长的表示，可以写一个函数传入枚举名并返回对应的`std::size_t`值。`std::get`是一个模板（函数），需要你给出一个`std::size_t`值的模板实参（注意使用`<>`而不是`()`），因此将枚举名变换为`std::size_t`值的函数必须**在编译期**产生这个结果。如Item15提到的，那必须是一个`constexpr`函数。事实上，它也的确该是一个`constexpr`函数模板，因为它应该能用于任何`enum`。如果想让它更一般化，还要泛化它的返回类型。较之于返回`std::size_t`，更应该返回枚举的底层类型。这可以通过`std::underlying_type`这个*type trait*获得。（参见 Item9 关于*type trait*的内容）。最终我们还要再加上`noexcept`修饰（参见Item14），因为知道它肯定不会产生异常。根据上述分析最终得到的`toUType`函数模板在编译期接受任意枚举名并返回它的值：
 
 ```cpp
 template<typename E>
@@ -1233,7 +1252,7 @@ auto val = std::get<toUType(UserInfoFields::uiEmail)>(uInfo);
 - 非限域/限域`enum`都支持底层类型说明语法，限域`enum`底层类型默认是`int`。非限域`enum`没有默认底层类型。
 - 限域`enum`总是可以前置声明。非限域`enum`仅当指定它们的底层类型时才能前置。
 
-## 条款十一：优先考虑使用deleted函数而非使用未定义的私有声明
+# 条款十一：优先考虑使用deleted函数而非使用未定义的私有声明
 
 c++98中防止调用拷贝构造函数或者赋值运算符的方法是将它们声明为私有函数：
 
@@ -1313,7 +1332,7 @@ template<>
 void processPointer<const char>(const char*) = delete;
 ```
 
-模板特例化必须位于一个命名空间作用域（全局命名空间或者某个命名空间中的代码块。这是大多数函数、变量和类型定义所在的层次），而不是类作用域，因此下面的代码出错：
+可能想用`private`（经典的C++98惯例）来禁止这些函数模板实例化，但是不能这样做，因为不能给特化的成员模板函数指定一个不同于主函数模板的访问级别。如果`processPointer`是类`Widget`里面的模板函数， 想禁止它接受`void*`参数，那么通过下面这样C++98的方法就不能通过编译：
 
 ```c++
 class Widget {
@@ -1330,7 +1349,7 @@ private:
 };
 ```
 
-*deleted*函数不会出现这个问题，因为它不需要一个不同的访问级别，且他们可以在类外被删除（因此位于命名空间作用域）：
+问题是模板特例化必须位于一个命名空间作用域，而不是类作用域，deleted*函数不会出现这个问题，因为它不需要一个不同的访问级别，且他们可以在类外被删除（因此位于命名空间作用域）：
 
 ```cpp
 class Widget {
@@ -1354,7 +1373,7 @@ void Widget::processPointer<void>(void*) = delete;  //但是已经被删除了
 - 比起声明函数为`private`但不定义，使用*deleted*函数更好
 - 任何函数都能被删除（be deleted），包括非成员函数和模板实例（译注：实例化的函数）
 
-## 条款十二：使用override声明重载函数
+# 条款十二：使用override声明重载函数
 
 要想重写一个函数，必须满足下列要求：
 
@@ -1367,6 +1386,25 @@ void Widget::processPointer<void>(void*) = delete;  //但是已经被删除了
 除了这些C++98就存在的约束外，C++11又添加了一个：
 
 - 函数的引用限定符（*reference qualifiers*）必须完全一样。它可以限定成员函数只能用于左值或者右值。成员函数不需要`virtual`也能使用它们：
+
+  ```c++
+  class Widget {
+  public:
+      …
+      void doWork() &;    //只有*this为左值的时候才能被调用
+      void doWork() &&;   //只有*this为右值的时候才能被调用
+  }; 
+  …
+  Widget makeWidget();    //工厂函数（返回右值）
+  Widget w;               //普通对象（左值）
+  …
+  w.doWork();             //调用被左值引用限定修饰的Widget::doWork版本
+                          //（即Widget::doWork &）
+  makeWidget().doWork();  //调用被右值引用限定修饰的Widget::doWork版本
+                          //（即Widget::doWork &&）
+  ```
+
+看下面的例子：
 
 ```cpp
 class Base {
@@ -1386,7 +1424,7 @@ public:
 };
 ```
 
-基类`Derived`中的函数并没有重写同名基类函数，并且绝大部分编译器未必能检测出全部的`warning`。
+派生类`Derived`中的函数并没有重写同名基类函数，并且绝大部分编译器未必能检测出全部的`warning`。
 
 **C++11可以显式地指定一个派生类函数是基类版本的重写：将它声明为`override`：**
 
@@ -1400,7 +1438,9 @@ public:
 };
 ```
 
-代码不能编译，编译器会抱怨所有与重写有关的问题。除此之外，如果你考虑修改修改基类虚函数的函数签名，`override`还可以帮你评估后果。如果派生类全都用上`override`，你可以只改变基类函数签名，重编译系统，再看看你造成了多大的问题（即，多少派生类不能通过编译），然后决定是否值得如此麻烦更改函数签名。
+代码不能编译，编译器会抱怨所有与重写有关的问题。
+
+除此之外，如果你考虑修改修改基类虚函数的函数签名，`override`还可以帮你评估后果。如果派生类全都用上`override`，你可以只改变基类函数签名，重编译系统，再看看你造成了多大的问题（即，多少派生类不能通过编译），然后决定是否值得如此麻烦更改函数签名。没有`override`，你只能寄希望于完善的单元测试，因为，正如所见，派生类虚函数本想重写基类，但是没有，编译器也没有探测并发出诊断信息。
 
 对于`override`，它只在成员函数声明结尾处才被视为关键字。这意味着如果你以前写的代码里面已经用过**override**这个名字，那么换到C++11标准你也无需修改代码（final也一样）：
 
@@ -1449,7 +1489,7 @@ Widget makeWidget();
 auto vals2 = makeWidget().data();   //拷贝Widget里面的值到vals2
 ```
 
-`Widgets::data`返回的是左值引用，还有，左值引用是左值。所以，我们的对象（`vals2`）得从`Widget`里的`values`拷贝构造。这一次，`Widget`是`makeWidget`返回的临时对象（即右值），所以将其中的`std::vector`进行拷贝纯属浪费。最好是移动，但是因为`data`返回左值引用，C++的规则要求编译器不得不生成一个拷贝。
+`Widgets::data`返回的是左值引用，还有，左值引用是左值。所以，对象（`vals2`）得从`Widget`里的`values`拷贝构造。这一次，`Widget`是`makeWidget`返回的临时对象（即右值），所以将其中的`std::vector`进行拷贝纯属浪费。最好是移动，但是因为`data`返回左值引用，C++的规则要求编译器不得不生成一个拷贝。（这其中有一些优化空间，被称作“as if rule”，但是依赖编译器使用这个优化规则就有点傻。）
 
 我们需要的是指明当`data`被右值`Widget`对象调用的时候结果也应该是一个右值。现在就可以使用引用限定，为左值`Widget`和右值`Widget`写一个`data`的重载函数来达成这一目的：
 
@@ -1486,7 +1526,7 @@ auto vals2 = makeWidget().data();   //调用右值重载版本的Widget::data,
 - 为重写函数加上`override`
 - 成员函数引用限定让我们可以区别对待左值对象和右值对象（即`*this`)
 
-## 条款十三：优先考虑const_iterator而非iterator
+# 条款十三：优先考虑const_iterator而非iterator
 
 在C++98中，标准库对`const_iterator`的支持不是很完整：
 
@@ -1570,7 +1610,7 @@ auto cbegin(const C& container)->decltype(std::begin(container))
 - 优先考虑`const_iterator`而非`iterator`
 - 在最大程度通用的代码中，优先考虑非成员函数版本的`begin`，`end`，`rbegin`等，而非同名成员函数
 
-## 条款十四：如果函数不抛出异常请使用noexcept
+# 条款十四：如果函数不抛出异常请使用noexcept
 
 **`noexcept`是函数接口的一部分，这意味着调用者可能会依赖它**
 
@@ -1644,7 +1684,7 @@ struct pair {
 - 异常安全保证函数：如果一个函数的设计保证不会抛出异常，则应该使用 `noexcept` 来明确其意图，这有助于优化。
 - 模板和泛型代码：在模板或泛型代码中，特别是当编写库时，使用 `noexcept` 可以提高代码的灵活性和性能，尤其是在需要确保异常安全时。
 
-## 条款十五：尽可能的使用constexpr
+# 条款十五：尽可能的使用constexpr
 
 **`constexpr`对象是`const`，它被在编译期可知的值初始化，但又不同于`const`：**
 
@@ -1755,7 +1795,7 @@ constexpr auto mid = midpoint(p1, p2);      //使用constexpr函数的结果
                                             //初始化constexpr对象
 ```
 
-它意味着`mid`对象通过调用构造函数，*getter*和非成员函数来进行初始化过程就能在只读内存中被创建出来！它也意味着你可以在模板实参或者需要枚举名的值的表达式里面使用像`mid.xValue() * 10`的表达式！（因为`Point::xValue`返回`double`，`mid.xValue() * 10`也是个`double`。浮点数类型不可被用于实例化模板或者说明枚举名的值，但是它们可以被用来作为产生整数值的大表达式的一部分。比如，`static_cast<int>(mid.xValue() * 10)`可以被用来实例化模板或者说明枚举名的值。）它也意味着以前相对严格的编译期完成的工作和运行时完成的工作的界限变得模糊，一些传统上在运行时的计算过程能并入编译时。越多这样的代码并入，你的程序就越快。（然而，编译会花费更长时间）
+它意味着`mid`对象通过调用构造函数，*getter*和非成员函数来进行初始化过程就能在只读内存中被创建出来！它也意味着你可以在模板实参或者需要枚举名的值的表达式里面使用像`mid.xValue() * 10`的表达式！（因为`Point::xValue`返回`double`，`mid.xValue() * 10`也是个`double`。**浮点数类型不可被用于实例化模板或者说明枚举名的值**，但是它们可以被用来作为产生整数值的大表达式的一部分。比如，`static_cast<int>(mid.xValue() * 10)`可以被用来实例化模板或者说明枚举名的值。）它也意味着以前相对严格的编译期完成的工作和运行时完成的工作的界限变得模糊，一些传统上在运行时的计算过程能并入编译时。越多这样的代码并入，你的程序就越快。（然而，编译会花费更长时间）
 
 在C++11中，有两个限制使得`Point`的成员函数`setX`和`setY`不能声明为`constexpr`。第一，它们修改它们操作的对象的状态， 并且在C++11中，`constexpr`成员函数是隐式的`const`。第二，它们有`void`返回类型，`void`类型不是C++11中的字面值类型。这两个限制在C++14中放开了，所以C++14中`Point`的*setter*（赋值器）也能声明为`constexpr`：
 
@@ -1807,7 +1847,7 @@ auto baseToExp = pow(base, exp);    //运行时调用pow函数
 
 **`constexpr`是对象和函数接口的一部分**
 
-## 条款十六：让const成员函数线程安全
+# 条款十六：让const成员函数线程安全
 
 **保证线程安全：**
 
@@ -1867,7 +1907,7 @@ private:
 
 **使用`std::atomic`变量可能比互斥量提供更好的性能：**
 
-在某些情况下，互斥量的副作用显会得过大。例如，如果你所做的只是计算成员函数被调用了多少次，使用`std::atomic` 修饰的计数器（保证其他线程视它的操作为不可分割的整体，参见[item40](https://cntransgroup.github.io/EffectiveModernCppChinese/7.TheConcurrencyAPI/item40.html)）通常会是一个开销更小的方法。以下是如何使用`std::atomic`来统计调用次数。（译者注：与 `std::mutex` 类似的，实际上 `std::atomic` 既不可移动，也不可复制。因而包含他们的类也同时是不可移动和不可复制的。）
+在某些情况下，互斥量的副作用显会得过大。例如，如果你所做的只是计算成员函数被调用了多少次，使用`std::atomic` 修饰的计数器（保证其他线程视它的操作为不可分割的整体，参见item40）通常会是一个开销更小的方法。以下是如何使用`std::atomic`来统计调用次数。（译者注：与 `std::mutex` 类似的，实际上 `std::atomic` 既不可移动，也不可复制。因而包含他们的类也同时是不可移动和不可复制的。）
 
 ```c++
 class Point {                                   //2D点
@@ -1979,12 +2019,12 @@ private:
 - 确保`const`成员函数线程安全，除非你**确定**它们永远不会在并发上下文（*concurrent context*）中使用。
 - 使用`std::atomic`变量可能比互斥量提供更好的性能，但是它只适合操作单个变量或内存位置。
 
-## 条款十七：理解特殊成员函数的生成
+# 条款十七：理解特殊成员函数的生成
 
 **C++11对于特殊成员函数处理的规则如下：**
 
 - **默认构造函数**：和C++98规则相同。仅当类不存在用户声明的构造函数时才自动生成。
-- **析构函数**：基本上和C++98相同；稍微不同的是现在析构默认`noexcept`（参见[Item14](https://cntransgroup.github.io/EffectiveModernCppChinese/3.MovingToModernCpp/item14.html)）。和C++98一样，仅当基类析构为虚函数时该类析构才为虚函数。
+- **析构函数**：基本上和C++98相同；稍微不同的是现在析构默认`noexcept`（参见Item14）。和C++98一样，仅当基类析构为虚函数时该类析构才为虚函数。
 - **拷贝构造函数**：和C++98运行时行为一样：逐成员拷贝non-static数据。仅当类没有用户定义的拷贝构造时才生成。如果类声明了移动操作它就是*delete*的。当用户声明了拷贝赋值或者析构，该函数自动生成已被废弃。
 - **拷贝赋值运算符**：和C++98运行时行为一样：逐成员拷贝赋值non-static数据。仅当类没有用户定义的拷贝赋值时才生成。如果类声明了移动操作它就是*delete*的。当用户声明了拷贝构造或者析构，该函数自动生成已被废弃。
 - **移动构造函数**和**移动赋值运算符**：都对非static数据执行逐成员移动。仅当类没有用户定义的拷贝操作，移动操作或析构时才自动生成。
@@ -2059,6 +2099,8 @@ private:
 
 **注意没有“成员函数模版阻止编译器生成特殊成员函数”的规则：**
 
+这意味着如果`Widget`是这样：
+
 ```cpp
 class Widget {
     …
@@ -2071,11 +2113,11 @@ class Widget {
 };
 ```
 
-编译器仍会生成移动和拷贝操作（假设正常生成它们的条件满足），即使可以模板实例化产出拷贝构造和拷贝赋值运算符的函数签名。
+编译器仍会生成移动和拷贝操作（假设正常生成它们的条件满足），即使可以模板实例化产出拷贝构造和拷贝赋值运算符的函数签名。（当`T`为`Widget`时。）
 
 
 
-## 条款十八：对于独占资源使用std::unique_ptr
+# 条款十八：对于独占资源使用std::unique_ptr
 
 **工厂函数中智能指针的应用：**
 
@@ -2120,11 +2162,11 @@ makeInvestment(Ts&&... params)
 }
 ```
 
-- `delInvmt`是从`makeInvestment`返回的对象的自定义的删除器。所有的自定义的删除行为接受要销毁对象的原始指针，然后执行所有必要行为实现销毁操作。在上面情况中，操作包括调用`makeLogEntry`然后应用`delete`。使用*lambda*创建`delInvmt`是方便的原因如下：当使用默认删除器时（如`delete`），你可以合理假设`std::unique_ptr`对象和原始指针大小相同；当自定义删除器时，情况可能不再如此。函数指针形式的删除器，通常会使`std::unique_ptr`的大小从一个字（*word*）增加到两个。对于函数对象形式的删除器来说，变化的大小取决于函数对象中存储的状态多少，无状态函数（stateless function）对象（比如不捕获变量的*lambda*表达式）对大小没有影响，这意味当自定义删除器可以实现为函数或者*lambda*时，尽量使用*lambda*。
-- 当使用自定义删除器时，删除器类型必须作为第二个类型实参传给`std::unique_ptr`。在上面情况中，就是`delInvmt`的类型，这就是为什么`makeInvestment`返回类型是`std::unique_ptr<Investment, decltype(delInvmt)>`。（对于`decltype`，更多信息查看[Item3](https://cntransgroup.github.io/EffectiveModernCppChinese/1.DeducingTypes/item3.html)）
+- `delInvmt`是从`makeInvestment`返回的对象的自定义的删除器。所有的自定义的删除行为接受要销毁对象的原始指针，然后执行所有必要行为实现销毁操作。在上面情况中，操作包括调用`makeLogEntry`然后应用`delete`。使用*lambda*创建`delInvmt`是方便的原因如下：当使用默认删除器时（如`delete`），你可以合理假设`std::unique_ptr`对象和原始指针大小相同；当自定义删除器时，情况可能不再如此。**函数指针形式的删除器，通常会使`std::unique_ptr`的大小从一个字（*word*）增加到两个。**对于函数对象形式的删除器来说，变化的大小取决于函数对象中存储的状态多少，无状态函数（stateless function）对象（比如不捕获变量的*lambda*表达式）对大小没有影响，这意味当自定义删除器可以实现为函数或者*lambda*时，尽量使用*lambda*。
+- 当使用自定义删除器时，删除器类型必须作为第二个类型实参传给`std::unique_ptr`。在上面情况中，就是`delInvmt`的类型，这就是为什么`makeInvestment`返回类型是`std::unique_ptr<Investment, decltype(delInvmt)>`。（对于`decltype`，更多信息查看Item3）
 - `makeInvestment`的基本策略是创建一个空的`std::unique_ptr`，然后指向一个合适类型的对象，然后返回。为了将自定义删除器`delInvmt`与`pInv`关联，我们把`delInvmt`作为`pInv`构造函数的第二个实参。
 - 尝试将原始指针（比如`new`创建）赋值给`std::unique_ptr`通不过编译，因为是一种从原始指针到智能指针的隐式转换。这种隐式转换会出问题，所以C++11的智能指针禁止这个行为。这就是通过`reset`来让`pInv`接管通过`new`创建的对象的所有权的原因。
-- 使用`new`时，我们使用`std::forward`把传给`makeInvestment`的实参完美转发出去（查看[Item25](https://cntransgroup.github.io/EffectiveModernCppChinese/5.RRefMovSemPerfForw/item25.html)）。这使调用者提供的所有信息可用于正在创建的对象的构造函数。
+- 使用`new`时，我们使用`std::forward`把传给`makeInvestment`的实参完美转发出去（查看Item25）。这使调用者提供的所有信息可用于正在创建的对象的构造函数。
 - 自定义删除器的一个形参，类型是`Investment*`，不管在`makeInvestment`内部创建的对象的真实类型（如`Stock`，`Bond`，或`RealEstate`）是什么，它最终在*lambda*表达式中，作为`Investment*`对象被删除。这意味着我们通过基类指针删除派生类实例，为此，基类`Investment`必须有虚析构函数：
 
 **在C++14中，函数返回类型推导的存在（参阅Item3）意味着`makeInvestment`可以以更简单，更封装的方式实现：**
@@ -2155,7 +2197,12 @@ std::shared_ptr<Investment> sp =            //将std::unique_ptr
 
 这就是`std::unique_ptr`非常适合用作工厂函数返回类型的原因的关键部分。 工厂函数无法知道调用者是否要对它们返回的对象使用专有所有权语义，或者共享所有权（即`std::shared_ptr`）是否更合适。 通过返回`std::unique_ptr`，工厂为调用者提供了最有效的智能指针，但它们并不妨碍调用者用其更灵活的兄弟替换它。
 
+但如果直接使用复制转换，需要使用 `std::move`：
 
+```c++
+unique_ptr<Investment> p(new Investment);
+shared_ptr<Investment> q = std::move(p);
+```
 
 **请记住：**
 
@@ -2164,7 +2211,7 @@ std::shared_ptr<Investment> sp =            //将std::unique_ptr
 - 默认情况，资源销毁通过`delete`实现，但是支持自定义删除器。有状态的删除器和函数指针会增加`std::unique_ptr`对象的大小
 - 将`std::unique_ptr`转化为`std::shared_ptr`非常简单
 
-## 条款十九：对于共享资源使用std::shared_ptr
+# 条款十九：对于共享资源使用std::shared_ptr
 
 **`std::shared_ptr`为有共享所有权的任意资源提供一种自动垃圾回收的便捷方式：**
 
@@ -2214,7 +2261,7 @@ std::vector<std::shared_ptr<Widget>> vpw{ pw1, pw2 };
 引用计数暗示着性能问题：
 
 - **`std::shared_ptr`大小是原始指针的两倍**，因为它内部包含一个指向资源的原始指针，还包含一个指向资源的引用计数值的原始指针。（这种实现法并不是标准要求的，但是我（指原书作者Scott Meyers）熟悉的所有标准库都这样实现。）
-- **引用计数的内存必须动态分配**。 概念上，引用计数与所指对象关联起来，但是实际上被指向的对象不知道这件事情（译注：不知道有一个关联到自己的计数值）。因此它们没有办法存放一个引用计数值。（一个好消息是任何对象——甚至是内置类型的——都可以由`std::shared_ptr`管理。）[Item21](https://cntransgroup.github.io/EffectiveModernCppChinese/4.SmartPointers/item21.html)会解释使用`std::make_shared`创建`std::shared_ptr`可以避免引用计数的动态分配，但是还存在一些`std::make_shared`不能使用的场景，这时候引用计数就会动态分配。
+- **引用计数的内存必须动态分配**。 概念上，引用计数与所指对象关联起来，但是实际上被指向的对象不知道这件事情（译注：不知道有一个关联到自己的计数值）。因此它们没有办法存放一个引用计数值。（一个好消息是任何对象——甚至是内置类型的——都可以由`std::shared_ptr`管理。）Item21 会解释使用`std::make_shared`创建`std::shared_ptr`可以避免引用计数的动态分配，但是还存在一些`std::make_shared`不能使用的场景，这时候引用计数就会动态分配。
 - **递增递减引用计数必须是原子性的**，因为多个reader、writer可能在不同的线程。比如，指向某种资源的`std::shared_ptr`可能在一个线程执行析构（于是递减指向的对象的引用计数），在另一个不同的线程，`std::shared_ptr`指向相同的对象，但是执行的却是拷贝操作（因此递增了同一个引用计数）。原子操作通常比非原子操作要慢，所以即使引用计数通常只有一个*word*大小，你也应该假定读写它们是存在开销的。
 
 前面提到了`std::shared_ptr`对象包含了所指对象的引用计数的指针。没错，但是有点误导人。因为引用计数是另一个更大的数据结构的一部分，那个数据结构通常叫做**控制块**（*control block*）。每个`std::shared_ptr`管理的对象都有个相应的控制块。控制块除了包含引用计数值外还有一个自定义删除器的拷贝，当然前提是存在自定义删除器。如果用户还指定了自定义分配器，控制块也会包含一个分配器的拷贝。控制块可能还包含一些额外的数据，正如Item21提到的，一个次级引用计数*weak count*，但是目前我们先忽略它。**可以想象`std::shared_ptr`对象在内存中是这样：**
@@ -2229,9 +2276,9 @@ Ptr to Control Block -> (Reference Count, Weak Count, Other Data(自定义删除
 
 通常，对于一个创建指向对象的`std::shared_ptr`的函数来说不可能知道是否有其他`std::shared_ptr`早已指向那个对象，所以控制块的创建会遵循下面几条规则：
 
-- **`std::make_shared`（参见[Item21](https://cntransgroup.github.io/EffectiveModernCppChinese/4.SmartPointers/item21.html)）总是创建一个控制块**。它创建一个要指向的新对象，所以可以肯定`std::make_shared`调用时对象不存在其他控制块。
+- **`std::make_shared`（参见Item21）总是创建一个控制块**。它创建一个要指向的新对象，所以可以肯定`std::make_shared`调用时对象不存在其他控制块。
 - **当从独占指针（即`std::unique_ptr`或者`std::auto_ptr`）上构造出`std::shared_ptr`时会创建控制块**。独占指针没有使用控制块，所以指针指向的对象没有关联控制块。（作为构造的一部分，`std::shared_ptr`侵占独占指针所指向的对象的独占权，所以独占指针被设置为null）
-- **当从原始指针上构造出`std::shared_ptr`时会创建控制块**。如果你想从一个早已存在控制块的对象上创建`std::shared_ptr`，你将假定传递一个`std::shared_ptr`或者`std::weak_ptr`（参见[Item20](https://cntransgroup.github.io/EffectiveModernCppChinese/4.SmartPointers/item20.html)）作为构造函数实参，而不是原始指针。用`std::shared_ptr`或者`std::weak_ptr`作为构造函数实参创建`std::shared_ptr`不会创建新控制块，因为它可以依赖传递来的智能指针指向控制块。
+- **当从原始指针上构造出`std::shared_ptr`时会创建控制块**。如果你想从一个早已存在控制块的对象上创建`std::shared_ptr`，你将假定传递一个`std::shared_ptr`或者`std::weak_ptr`（参见Item20）作为构造函数实参，而不是原始指针。用`std::shared_ptr`或者`std::weak_ptr`作为构造函数实参创建`std::shared_ptr`不会创建新控制块，因为它可以依赖传递来的智能指针指向控制块。
 
 **避免从原始指针变量上创建`std::shared_ptr`：**
 
@@ -2245,7 +2292,7 @@ std::shared_ptr<Widget> spw1(pw, loggingDel);   //为*pw创建控制块
 std::shared_ptr<Widget> spw2(pw, loggingDel);   //为*pw创建第二个控制块
 ```
 
-第一，避免传给`std::shared_ptr`构造函数原始指针。通常替代方案是使用`std::make_shared`（参见[Item21](https://cntransgroup.github.io/EffectiveModernCppChinese/4.SmartPointers/item21.html)），不过上面例子中，我们使用了自定义删除器，用`std::make_shared`就没办法做到。第二，如果你必须传给`std::shared_ptr`构造函数原始指针，直接传`new`出来的结果，不要传指针变量。如果上面代码第一部分这样重写：
+第一，避免传给`std::shared_ptr`构造函数原始指针。通常替代方案是使用`std::make_shared`（参见Item21），不过上面例子中，我们使用了自定义删除器，用`std::make_shared`就没办法做到。第二，如果你必须传给`std::shared_ptr`构造函数原始指针，直接传`new`出来的结果，不要传指针变量。如果上面代码第一部分这样重写：
 
 ```cpp
 std::shared_ptr<Widget> spw1(new Widget,    //直接使用new的结果
@@ -2330,13 +2377,13 @@ private:
 
 **`std::shared_ptr`的成本：**
 
-控制块通常只占几个*word*大小，自定义删除器和分配器可能会让它变大一点。通常控制块的实现比你想的更复杂一些。它使用继承，甚至里面还有一个虚函数（用来确保指向的对象被正确销毁）。这意味着使用`std::shared_ptr`还会招致控制块使用虚函数带来的成本。在通常情况下，使用默认删除器和默认分配器，使用`std::make_shared`创建`std::shared_ptr`，产生的控制块只需三个word大小。它的分配基本上是无开销的。（开销被并入了指向的对象的分配成本里。细节参见[Item21](https://cntransgroup.github.io/EffectiveModernCppChinese/4.SmartPointers/item21.html)）。对`std::shared_ptr`解引用的开销不会比原始指针高。执行需要原子引用计数修改的操作需要承担一两个原子操作开销，这些操作通常都会一一映射到机器指令上，所以即使对比非原子指令来说，原子指令开销较大，但是它们仍然只是单个指令上的。对于每个被`std::shared_ptr`指向的对象来说，控制块中的虚函数机制产生的开销通常只需要承受一次，即对象销毁的时候。
+控制块通常只占几个*word*大小，自定义删除器和分配器可能会让它变大一点。通常控制块的实现比你想的更复杂一些。它使用继承，甚至里面还有一个虚函数（用来确保指向的对象被正确销毁）。这意味着使用`std::shared_ptr`还会招致控制块使用虚函数带来的成本。在通常情况下，使用默认删除器和默认分配器，使用`std::make_shared`创建`std::shared_ptr`，产生的控制块只需三个word大小。它的分配基本上是无开销的。（开销被并入了指向的对象的分配成本里。细节参见Item21）。对`std::shared_ptr`解引用的开销不会比原始指针高。执行需要原子引用计数修改的操作需要承担一两个原子操作开销，这些操作通常都会一一映射到机器指令上，所以即使对比非原子指令来说，原子指令开销较大，但是它们仍然只是单个指令上的。对于每个被`std::shared_ptr`指向的对象来说，控制块中的虚函数机制产生的开销通常只需要承受一次，即对象销毁的时候。
 
 **`std::shared_ptr`不能处理的另一个东西是数组：**
 
-和`std::unique_ptr`不同的是，`std::shared_ptr`的API设计之初就是针对单个对象的，没有办法`std::shared_ptr<T[]>`。（译者注: 自 C++17 起 std::shared_ptr 可以用于管理动态分配的数组，使用 std::shared_ptr<T[]>）“聪明”的程序员踌躇于是否该使用`std::shared_ptr<T>`指向数组，然后传入自定义删除器来删除数组（即`delete []`）。这可以通过编译，但一方面，`std::shared_ptr`没有提供`operator[]`，所以数组索引操作需要借助怪异的指针算术。另一方面，`std::shared_ptr`支持转换为指向基类的指针，这对于单个对象来说有效，但是当用于数组类型时相当于在类型系统上开洞。（出于这个原因，`std::unique_ptr<T[]>` API禁止这种转换。）更重要的是，C++11已经提供了很多内置数组的候选方案（比如`std::array`，`std::vector`，`std::string`）。
+和`std::unique_ptr`不同的是，`std::shared_ptr`的API设计之初就是针对单个对象的，没有办法`std::shared_ptr<T[]>`。（译者注: 自 C++17 起 std::shared_ptr 可以用于管理动态分配的数组，使用 std::shared_ptr<T[]>）“聪明”的程序员踌躇于是否该使用`std::shared_ptr<T>`指向数组，然后传入自定义删除器来删除数组（即`delete []`）。这可以通过编译，但是是一个糟糕的主意。一方面，`std::shared_ptr`没有提供`operator[]`，所以数组索引操作需要借助怪异的指针算术。另一方面，`std::shared_ptr`支持转换为指向基类的指针，这对于单个对象来说有效，但是当用于数组类型时相当于在类型系统上开洞。（出于这个原因，`std::unique_ptr<T[]>` API禁止这种转换。）更重要的是，C++11已经提供了很多内置数组的候选方案（比如`std::array`，`std::vector`，`std::string`）。
 
-## 条款二十：当std::shared_ptr可能悬空时使用std::weak_ptr
+# 条款二十：当std::shared_ptr可能悬空时使用std::weak_ptr
 
 **`std::weak_ptr`不是一个独立的智能指针，而是`std::shared_ptr`的增强。**`std::weak_ptr`通常从`std::shared_ptr`上创建。当从`std::shared_ptr`上创建`std::weak_ptr`时两者指向相同的对象，但是`std::weak_ptr`参与对象的共享所有权，不会影响所指向对象的引用计数：
 
@@ -2403,7 +2450,7 @@ std::shared_ptr<const Widget> fastLoadWidget(WidgetID id)
 
 观察者设计模式（Observer design pattern）。此模式的主要组件是subjects（状态可能会更改的对象）和observers（状态发生更改时要通知的对象）。在大多数实现中，每个subject都包含一个数据成员，该成员持有指向其observers的指针。这使subjects很容易发布状态更改通知。subjects对控制observers的生命周期（即它们什么时候被销毁）没有兴趣，但是subjects对确保另一件事具有极大的兴趣，那事就是一个observer被销毁时，不再尝试访问它。一个合理的设计是每个subject持有一个`std::weak_ptr`容器指向observers，因此可以在使用前检查是否已经悬空。
 
-**实用例子2：**
+**实用例子3：**
 
 考虑一个持有三个对象`A`、`B`、`C`的数据结构，`A`和`C`共享`B`的所有权，因此持有`std::shared_ptr`：
 
@@ -2424,7 +2471,7 @@ A<——？—— B
 - 用`std::weak_ptr`替代可能会悬空的`std::shared_ptr`。
 - `std::weak_ptr`的潜在使用场景包括：缓存、观察者列表、打破`std::shared_ptr`环状结构。
 
-## 条款二十一：优先考虑使用std::make_unique和std::make_shared，而非直接使用new
+# 条款二十一：优先考虑使用std::make_unique和std::make_shared，而非直接使用new
 
 `std::make_unique`和`std::make_shared`是三个**make函数** 中的两个：接收任意的多参数集合，完美转发到构造函数去动态分配一个对象，然后返回这个指向这个对象的指针。第三个`make`函数是`std::allocate_shared`。它行为和`std::make_shared`一样，只不过第一个参数是用来动态分配内存的*allocator*对象。
 
@@ -2523,7 +2570,7 @@ auto upv = std::make_unique<std::vector<int>>(10, 20);
 auto spv = std::make_shared<std::vector<int>>(10, 20);
 ```
 
-两种调用都创建了10个元素，每个值为20的`std::vector`。这意味着在`make`函数中，完美转发使用小括号，而不是花括号。坏消息是如果你想用花括号初始化指向的对象，你必须直接使用`new`。使用`make`函数会需要能够完美转发花括号初始化的能力，但是，正如[Item30](https://cntransgroup.github.io/EffectiveModernCppChinese/5.RRefMovSemPerfForw/item30.html)所说，花括号初始化无法完美转发。但是，Item30介绍了一个变通的方法：使用`auto`类型推导从花括号初始化创建`std::initializer_list`对象（见[Item2](https://cntransgroup.github.io/EffectiveModernCppChinese/1.DeducingTypes/item2.html)），然后将`auto`创建的对象传递给`make`函数。
+两种调用都创建了10个元素，每个值为20的`std::vector`。这意味着在`make`函数中，完美转发使用小括号，而不是花括号。坏消息是如果你想用花括号初始化指向的对象，你必须直接使用`new`。使用`make`函数会需要能够完美转发花括号初始化的能力，但是，正如 Item30 所说，花括号初始化无法完美转发。但是，Item30介绍了一个变通的方法：使用`auto`类型推导从花括号初始化创建`std::initializer_list`对象（见 Item2 ），然后将`auto`创建的对象传递给`make`函数。
 
 ```cpp
 //创建std::initializer_list
@@ -2540,9 +2587,9 @@ auto spv = std::make_shared<std::vector<int>>(initList);
 
 **对象的内存释放可能被延迟：**
 
-与直接使用`new`相比，`std::make_shared`在大小和速度上的优势源于`std::shared_ptr`的控制块与指向的对象放在同一块内存中。当对象的引用计数降为0，对象被销毁（即析构函数被调用）。但是，因为控制块和对象被放在同一块分配的内存块中，直到控制块的内存也被销毁，对象占用的内存才被释放。
+与直接使用`new`相比，`std::make_shared`在大小和速度上的优势源于`std::shared_ptr`的控制块与指向的对象放在同一块内存中。当对象的引用计数降为 0，对象被销毁（即析构函数被调用）。但是，因为控制块和对象被放在同一块分配的内存块中，直到控制块的内存也被销毁，对象占用的内存才被释放。
 
-控制块除了引用计数，还包含簿记信息。引用计数追踪有多少`std::shared_ptr`指向控制块，但控制块还有第二个计数，记录多少个`std::weak_ptr`s指向控制块。第二个引用计数就是*weak count*。（实际上，*weak count*的值不总是等于指向控制块的`std::weak_ptr`的数目，因为库的实现者找到一些方法在*weak count*中添加附加信息，促进更好的代码产生。为了本条款的目的，我们会忽略这一点，假定*weak count*的值等于指向控制块的`std::weak_ptr`的数目。）当一个`std::weak_ptr`检测它是否过期时（见Item19），它会检测指向的控制块中的引用计数（而不是*weak count*）。如果引用计数是0（即对象没有`std::shared_ptr`再指向它，已经被销毁了），`std::weak_ptr`就已经过期。否则就没过期。
+控制块除了引用计数，还包含簿记信息。引用计数追踪有多少`std::shared_ptr`指向控制块，但控制块还有第二个计数，记录多少个`std::weak_ptr`s 指向控制块。第二个引用计数就是 *weak count*。（实际上，*weak count* 的值不总是等于指向控制块的`std::weak_ptr`的数目，因为库的实现者找到一些方法在*weak count*中添加附加信息，促进更好的代码产生。为了本条款的目的，我们会忽略这一点，假定*weak count*的值等于指向控制块的`std::weak_ptr`的数目。）当一个`std::weak_ptr`检测它是否过期时（见Item19），它会检测指向的控制块中的引用计数（而不是*weak count*）。如果引用计数是0（即对象没有`std::shared_ptr`再指向它，已经被销毁了），`std::weak_ptr`就已经过期。否则就没过期。
 
 只要`std::weak_ptr`引用一个控制块（即*weak count*大于零），该控制块必须继续存在。只要控制块存在，包含它的内存就必须保持分配。通过`std::shared_ptr`的`make`函数分配的内存，直到最后一个`std::shared_ptr`和最后一个指向它的`std::weak_ptr`已被销毁，才会释放。
 
@@ -2602,7 +2649,7 @@ processWidget(std::move(spw), computePriority());   //高效且异常安全
 
 
 
-## 条款二十二：当使用Pimpl惯用法，请在实现文件中定义特殊成员函数
+# 条款二十二：当使用Pimpl惯用法，请在实现文件中定义特殊成员函数
 
 ```c++
 class Widget() {                    //定义在头文件“widget.h”
@@ -2704,7 +2751,7 @@ Widget::Widget()                    //根据条款21，通过std::make_unique
 Widget w;                           //错误！
 ```
 
-你所看到的错误信息根据编译器不同会有所不同，但是其文本一般会提到一些有关于“把`sizeof`或`delete`应用到不完整类型上”的信息。对于不完整类型，使用以上操作是禁止的。在Pimpl惯用法中使用`std::unique_ptr`会抛出错误，有点惊悚，因为第一`std::unique_ptr`宣称它支持不完整类型，第二Pimpl惯用法是`std::unique_ptr`的最常见的使用情况之一。对该问题的清楚认识：在对象`w`被析构时（例如离开了作用域），在这个时候，它的析构函数被调用。我们在类的定义里使用了`std::unique_ptr`，所以我们没有声明一个析构函数，因为我们并没有任何代码需要写在里面。根据编译器自动生成的特殊成员函数的规则（见 [Item17](https://cntransgroup.github.io/EffectiveModernCppChinese/3.MovingToModernCpp/item17.html)），编译器会自动为我们生成一个析构函数。 在这个析构函数里，编译器会插入一些代码来调用类`Widget`的数据成员`pImpl`的析构函数。 `pImpl`是一个`std::unique_ptr<Widget::Impl>`，也就是说，一个使用默认删除器的`std::unique_ptr`。 默认删除器是一个函数，它使用`delete`来销毁内置于`std::unique_ptr`的原始指针。然而，在使用`delete`之前，通常会使默认删除器使用C++11的特性`static_assert`来确保原始指针指向的类型不是一个不完整类型。 当编译器为`Widget w`的析构生成代码时，它会遇到`static_assert`检查并且失败，这通常是错误信息的来源。 这些错误信息只在对象`w`销毁的地方出现，因为类`Widget`的析构函数，正如其他的编译器生成的特殊成员函数一样，是暗含`inline`属性的。 错误信息自身往往指向对象`w`被创建的那行，因为这行代码明确地构造了这个对象，导致了后面潜在的析构。为了解决这个问题，你只需要确保在编译器生成销毁`std::unique_ptr<Widget::Impl>`的代码之前， `Widget::Impl`已经是一个完整类型（*complete type*）。 当编译器“看到”它的定义的时候，该类型就成为完整类型了。 但是 `Widget::Impl`的定义在`widget.cpp`里。成功编译的关键，就是在`widget.cpp`文件内，让编译器在“看到” `Widget`的析构函数实现之前（也即编译器插入的，用来销毁`std::unique_ptr`这个数据成员的代码的，那个位置），先定义`Widget::Impl`。
+你所看到的错误信息根据编译器不同会有所不同，但是其文本一般会提到一些有关于“把`sizeof`或`delete`应用到不完整类型上”的信息。对于不完整类型，使用以上操作是禁止的。在Pimpl惯用法中使用`std::unique_ptr`会抛出错误，有点惊悚，因为第一`std::unique_ptr`宣称它支持不完整类型，第二Pimpl惯用法是`std::unique_ptr`的最常见的使用情况之一。对该问题的清楚认识：在对象`w`被析构时（例如离开了作用域），在这个时候，它的析构函数被调用。我们在类的定义里使用了`std::unique_ptr`，所以我们没有声明一个析构函数，因为我们并没有任何代码需要写在里面。根据编译器自动生成的特殊成员函数的规则（见 Item17），编译器会自动为我们生成一个析构函数。 在这个析构函数里，编译器会插入一些代码来调用类`Widget`的数据成员`pImpl`的析构函数。 `pImpl`是一个`std::unique_ptr<Widget::Impl>`，也就是说，一个使用默认删除器的`std::unique_ptr`。 默认删除器是一个函数，它使用`delete`来销毁内置于`std::unique_ptr`的原始指针。然而，在使用`delete`之前，通常会使默认删除器使用C++11的特性`static_assert`来确保原始指针指向的类型不是一个不完整类型。 当编译器为`Widget w`的析构生成代码时，它会遇到`static_assert`检查并且失败，这通常是错误信息的来源。 这些错误信息只在对象`w`销毁的地方出现，因为类`Widget`的析构函数，正如其他的编译器生成的特殊成员函数一样，是暗含`inline`属性的。 错误信息自身往往指向对象`w`被创建的那行，因为这行代码明确地构造了这个对象，导致了后面潜在的析构。为了解决这个问题，你只需要确保在编译器生成销毁`std::unique_ptr<Widget::Impl>`的代码之前， `Widget::Impl`已经是一个完整类型（*complete type*）。 当编译器“看到”它的定义的时候，该类型就成为完整类型了。 但是 `Widget::Impl`的定义在`widget.cpp`里。成功编译的关键，就是在`widget.cpp`文件内，让编译器在“看到” `Widget`的析构函数实现之前（也即编译器插入的，用来销毁`std::unique_ptr`这个数据成员的代码的，那个位置），先定义`Widget::Impl`。
 
 只需要先在`widget.h`里，只声明类`Widget`的析构函数，但不要在这里定义它：
 
@@ -2789,6 +2836,7 @@ private:                                //跟之前一样
     struct Impl;
     std::unique_ptr<Impl> pImpl;
 };
+
 #include <string>                   //跟之前一样，仍然在“widget.cpp”中
 …
     
@@ -2849,7 +2897,7 @@ w1 = std::move(w2);         //移动赋值w1
 
 
 
-## 条款二十三：理解std::move和std::forward
+# 条款二十三：理解std::move和std::forward
 
 **`std::move`无条件的将它的实参转换为右值:**
 
@@ -2865,7 +2913,7 @@ move(T&& param)
 }
 ```
 
-`std::move`接受一个对象的引用（准确的说，一个通用引用，见Item24)，返回一个指向同对象的引用。该函数返回类型的`&&`部分表明`std::move`函数返回的是一个右值引用，但是，如果类型`T`恰好是一个左值引用，那么`T&&`将会成为一个左值引用。为了避免如此，*type trait*（见[Item9](https://cntransgroup.github.io/EffectiveModernCppChinese/3.MovingToModernCpp/item9.html)）`std::remove_reference`应用到了类型`T`上，因此确保了`&&`被正确的应用到了一个不是引用的类型上。这保证了`std::move`返回的是右值引用。
+`std::move`接受一个对象的引用（准确的说，一个通用引用，见Item24)，返回一个指向同对象的引用。该函数返回类型的`&&`部分表明`std::move`函数返回的是一个右值引用，但是，如果类型`T`恰好是一个左值引用，那么`T&&`将会成为一个左值引用。为了避免如此，*type trait*（见Item9）`std::remove_reference`应用到了类型`T`上，因此确保了`&&`被正确的应用到了一个不是引用的类型上。这保证了`std::move`返回的是右值引用。
 
 C++14中的函数返回值类型推导（见Item3）和标准库的模板别名`std::remove_reference_t`(见Item9)，可以使`std::move`这样实现：
 
@@ -2884,7 +2932,7 @@ decltype(auto) move(T&& param)          //C++14，仍然在std命名空间
 class Annotation {
 public:
     explicit Annotation(const std::string text)
-    ：value(std::move(text))    //“移动”text到value里；这段代码执行起来
+    : value(std::move(text))    //“移动”text到value里；这段代码执行起来
     { … }                       //并不是看起来那样
     
     …
@@ -2981,7 +3029,7 @@ public:
 
   
 
-## 条款二十四：区分通用引用和右值引用
+# 条款二十四：区分通用引用和右值引用
 
 **“`T&&`”有两种不同的意思：**
 
@@ -3083,7 +3131,7 @@ Widget&& var1 = Widget();       //没有类型推导，
 
 
 
-## 条款二十五：对右值引用使用std::move，对通用引用使用std::forward
+# 条款二十五：对右值引用使用std::move，对通用引用使用std::forward
 
 **对右值引用使用std::move：**
 
@@ -3146,9 +3194,9 @@ w.setName(n);                       //把n移动进w！
 …                                   //现在n的值未知
 ```
 
-上面的例子，局部变量`n`被传递给`w.setName`，调用方可能认为这是对`n`的只读操作——这一点倒是可以被原谅。但是因为`setName`内部使用`std::move`无条件将传递的引用形参转换为右值，`n`的值被移动进`w.name`，调用`setName`返回时`n`最终变为未定义的值。
+上面的例子，局部变量`n`被传递给`w.setName`，调用方可能认为这是对`n`的只读操作。但是因为`setName`内部使用`std::move`无条件将传递的引用形参转换为右值，`n`的值被移动进`w.name`，调用`setName`返回时`n`最终变为未定义的值。
 
-可能会有这个想法：`setName`不应该将其形参声明为通用引用，此类引用不能使用`const`（见[Item24](https://cntransgroup.github.io/EffectiveModernCppChinese/5.RRefMovSemPerfForw/item24.html)），但是`setName`肯定不应该修改其形参。因此如果为`const`左值和为右值分别重载`setName`可以避免整个问题，比如这样：
+可能会有这个想法：`setName`不应该将其形参声明为通用引用，此类引用不能使用`const`（见Item24），但是`setName`肯定不应该修改其形参。因此如果为`const`左值和为右值分别重载`setName`可以避免整个问题，比如这样：
 
 ```cpp
 class Widget {
@@ -3169,7 +3217,7 @@ public:
 w.setName("Adela Novak");
 ```
 
-使用通用引用的版本的`setName`，字面字符串“`Adela Novak`”可以被传递给`setName`，再传给`w`内部`std::string`的赋值运算符。`w`的`name`的数据成员通过字面字符串直接赋值，没有临时`std::string`对象被创建。但是，`setName`重载版本，会有一个临时`std::string`对象被创建，`setName`形参绑定到这个对象，然后这个临时`std::string`移动到`w`的数据成员中。一次`setName`的调用会包括`std::string`构造函数调用（创建中间对象），`std::string`赋值运算符调用（移动`newName`到`w.name`），`std::string`析构函数调用（析构中间对象）。这比调用接受`const char*`指针的`std::string`赋值运算符开销昂贵许多。并且设计的可扩展性差。`Widget::setName`有一个形参，因此需要两种重载实现，但是对于有更多形参的函数，每个都可能是左值或右值，重载函数的数量几何式增长：n个参数的话，就要实现2的n次种重载。对于这种函数，对于左值和右值分别重载就不能考虑了：通用引用是仅有的实现方案。
+使用通用引用的版本的`setName`，字面字符串“`Adela Novak`”可以被传递给`setName`，再传给`w`内部`std::string`的赋值运算符。`w`的`name`的数据成员通过字面字符串直接赋值，没有临时`std::string`对象被创建。但是，`setName`重载版本，会有一个临时`std::string`对象被创建，`setName`形参绑定到这个对象，然后这个临时`std::string`移动到`w`的数据成员中。一次`setName`的调用会包括`std::string`构造函数调用（创建中间对象），`std::string`赋值运算符调用（移动`newName`到`w.name`），`std::string`析构函数调用（析构中间对象）。这比调用接受`const char*`指针的`std::string`赋值运算符开销昂贵许多。增加的开销根据实现不同而不同，这些开销是否值得担心也跟应用和库的不同而有所不同，但是事实上，将通用引用模板替换成对左值引用和右值引用的一对函数重载在某些情况下会导致运行时的开销。但关于对左值和右值的重载函数最重要的问题不是源代码的数量，也不是代码的运行时性能。而是设计的可扩展性差。。`Widget::setName`有一个形参，因此需要两种重载实现，但是对于有更多形参的函数，每个都可能是左值或右值，重载函数的数量几何式增长：n个参数的话，就要实现2的n次种重载。对于这种函数，对于左值和右值分别重载就不能考虑了：通用引用是仅有的实现方案。
 
 **在最后一次使用时，使用`std::move`（对右值引用）或者`std::forward`（对通用引用）：**
 
@@ -3211,7 +3259,7 @@ operator+(Matrix&& lhs, const Matrix& rhs)
 }
 ```
 
-`lhs`是个左值的事实，会强制编译器拷贝它到返回值的内存空间。假定`Matrix`支持移动操作，并且比拷贝操作效率更高，在`return`语句中使用`std::move`的代码效率更高。
+`lhs`是个左值的事实，会强制编译器拷贝它到返回值的内存空间。假定`Matrix`支持移动操作，并且比拷贝操作效率更高，在`return`语句中使用`std::move`的代码效率更高，如果`Matrix`不支持移动操作，将其转换为右值不会变差，因为右值可以直接被`Matrix`的拷贝构造函数拷贝。
 
 使用通用引用和`std::forward`的情况类似。
 
@@ -3252,7 +3300,7 @@ Widget makeWidget()                 //makeWidget的“拷贝”版本
 
 这里两个条件都满足，C++编译器都会应用RVO来避免拷贝`w`。那意味着`makeWidget`的“拷贝”版本实际上不拷贝任何东西。
 
-移动版本的`makeWidget`行为与其名称一样（假设`Widget`有移动构造函数），将`w`的内容移动到`makeWidget`的返回值位置。但是为编译器不使用RVO消除这种移动，而是在分配给函数返回值的内存中再次构造`w`，条件（2）中规定，仅当返回值为局部对象时，才进行RVO，但是`makeWidget`的移动版本不满足这条件，再次看一下返回语句：
+移动版本的`makeWidget`行为与其名称一样（假设`Widget`有移动构造函数），将`w`的内容移动到`makeWidget`的返回值位置。但是编译器不使用RVO消除这种移动，而是在分配给函数返回值的内存中再次构造`w`，条件（2）中规定，仅当返回值为局部对象时，才进行RVO，但是`makeWidget`的移动版本不满足这条件，再次看一下返回语句：
 
 ```cpp
 return std::move(w);
@@ -3304,6 +3352,64 @@ Widget makeWidget(Widget w)
 
 这意味着，如果对从按值返回的函数返回来的局部对象使用`std::move`，你并不能帮助编译器（如果不能实行拷贝消除的话，他们必须把局部对象看做右值），而是阻碍其执行优化选项（通过阻止RVO）。在某些情况下，将`std::move`应用于局部变量可能是一件合理的事（即，你把一个变量传给函数，并且知道不会再用这个变量），但是满足RVO的`return`语句或者返回一个传值形参并不在此列。
 
+看下面的代码：
+
+```c++
+# include<iostream>
+using namespace std;
+
+class Person{
+public:
+	Person(int a = 0)
+	{ 
+		m_age = a;
+		cout << "构造函数!" << endl;
+	};
+	Person(const Person &p)
+	{ 
+		m_age = p.m_age;
+		cout << "拷贝构造!" << endl;
+	}
+	Person(Person &&p)
+		: m_age(move(p.m_age))
+	{ 
+		m_age = p.m_age;
+		cout << "移动构造!" << endl;
+	}
+	~Person()
+	{
+		cout << "析构函数!" << endl;
+	}
+	int fun(Person p)
+	{
+		p.m_age = 20;
+		return p.m_age;
+	}
+	int m_age;	
+};
+Person test(Person  p)
+{
+	Person p1;
+	p1.m_age = p.m_age;
+	return p;			//将`std::move`隐式应用于返回的局部对象
+}
+int main()
+{
+	Person p;
+    Person q = test(p);
+	return 0;
+}
+
+/*
+构造函数!
+拷贝构造!
+构造函数!
+析构函数!
+析构函数!
+析构函数!
+*/
+```
+
 
 
 **请记住：**
@@ -3314,7 +3420,7 @@ Widget makeWidget(Widget w)
 
 
 
-## 条款二十六：避免在通用引用上重载
+# 条款二十六：避免在通用引用上重载
 
 考虑下面的代码，它使用名字作为形参，打印当前日期和时间到日志中，然后将名字加入到一个全局数据结构中：
 
@@ -3358,7 +3464,7 @@ logAndAdd("Patty Dog");                 //在multiset直接创建std::string
                                         //而不是拷贝一个临时std::string
 ```
 
-**在通用引用上重载：**
+**在通用引用上重载的副作用：**
 
 **例一：**
 
@@ -3419,7 +3525,7 @@ Person p("Nancy");
 auto cloneOfP(p);                   //从p创建新Person；这通不过编译！
 ```
 
-这里我们试图通过一个`Person`实例创建另一个`Person`，显然应该调用拷贝构造即可。但是这份代码不是调用拷贝构造函数，而是调用完美转发构造函数。然后，完美转发的函数将尝试使用`Person`对象`p`初始化`Person`的`std::string`数据成员，编译器就会报错。
+这里我们试图通过一个`Person`实例创建另一个`Person`，显然应该调用拷贝构造即可。但是这份代码不是调用拷贝构造函数，而是调用完美转发构造函数。然后，完美转发的函数将尝试使用`Person`对象`p`初始化`Person`的`std::string`数据成员，编译器就会报错。编译器的理由如下：`cloneOfP`被non-`const`左值`p`初始化，这意味着模板化构造函数可被实例化为采用`Person`类型的non-`const`左值。实例化之后，`Person`类看起来是这样的：
 
 ```cpp
 class Person {
@@ -3473,7 +3579,7 @@ public:
 
 
 
-## 条款二十七：熟悉通用引用重载的替代方法
+# 条款二十七：熟悉通用引用重载的替代方法
 
 **放弃重载：**
 
@@ -3481,7 +3587,7 @@ public:
 
 **传递`const T&`:**
 
-一种替代方案是退回到C++98，然后将传递通用引用替换为传递lvalue-refrence-to-`const`。事实上，这是[Item26](https://cntransgroup.github.io/EffectiveModernCppChinese/5.RRefMovSemPerfForw/item26.html)中首先考虑的方法。缺点是效率不高。现在知道了通用引用和重载的相互关系，所以放弃一些效率来确保行为正确简单可能也是一种不错的折中。
+一种替代方案是退回到C++98，然后将传递通用引用替换为传递lvalue-refrence-to-`const`。事实上，这是Item26中首先考虑的方法。缺点是效率不高。现在知道了通用引用和重载的相互关系，所以放弃一些效率来确保行为正确简单可能也是一种不错的折中。
 
 **传值：**
 
@@ -3546,7 +3652,7 @@ void logAndAddImpl(T&& name, std::false_type)	//译者注：高亮std::false_typ
 
 std::string nameFromIdx(int idx);   //返回idx对应的名字
 
-void logAndAdd(int idx, std::true_type)             //新的重载
+void logAndAddImpl(int idx, std::true_type)             //新的重载
 {
     auto now = std::chrono::system_clock::now();
     log(now, "logAndAdd");
@@ -3755,7 +3861,7 @@ public:
 
 
 
-## 条款二十八：理解引用折叠
+# 条款二十八：理解引用折叠
 
 当实参被用来实例化通用引用形参时，被推导的模板形参`T`根据实参是左值还是右值来编码。当左值实参被传入时，`T`被推导为左值引用。当右值被传入时，`T`被推导为非引用。
 
@@ -3952,7 +4058,7 @@ typedef int& RvalueRefToT;
 
 
 
-## 条款二十九：假定移动操作不存在，成本高，未被使用
+# 条款二十九：假定移动操作不存在，成本高，未被使用
 
 除了Item17和Item11的情况外，即使显式支持了移动操作，结果可能也没有那么好。比如，所有C++11的标准库容器都支持了移动操作，但是认为移动所有容器的开销都非常小是个错误。对于某些容器来说，压根就不存在开销小的方式来移动它所包含的内容。对另一些容器来说，容器的开销真正小的移动操作会有些容器元素不能满足的注意条件。
 
