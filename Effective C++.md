@@ -2715,15 +2715,31 @@ class Rectangle : public Shape
    ```
 
    w 必须支持哪一种接口，系由template中执行于w身上的操作来决定。本例看来w的类型T好像必须支持size,normalize和swap成员函数、copy构造函数(用以建立 temp)、不等比较(inequalitycomparison,用来比较someNasty-widget)我们很快会看到这并非完全正确，但对目前而言足够真实。重要的是，这一组表达式(对此template而言必须有效编译)便是必须支持的一组隐式接口；凡涉及w的任何函数调用，例如operator>和operator!=，有可能造成template具现化(instantiated)，使这些调用得以成功。在编译时，编译器会通过模板具现化来生成具体类型的代码，这些代码在编译期就已经确定。编译器根据实际传入的类型选择合适的模板实例，这就形成了一种在编译期的多态性，不同于传统的运行时多态（如虚函数）。
-
-   上述代码中，T(w的类型)的隐式接口看来好像有这些约束:
+   
+   “运行期多态”和“编译期多态”之间的差异，因为它类似于“哪一个重载函数该被调用”(发生在编译期)和“哪一个virtual 函数该被绑定”(发生在运行期)之间的差异。
+   
+   通常显式接口由函数的签名式(也就是函数名称、参数类型、返回类型)构成。
+	```
+	class widget
+ 	{
+		public:
+		Widget();
+		virtual ~widget();
+		virtual std::sizetsize()const;
+		virtual void normalize();
+		void swap(Widget& other);
+	};
+ 	```
+   其 public 接口由一个构造函数、一个析构函数、函数 size、normalize、swap及其参数类型、返回类型、常量性(constnesses)构成。当然也包括编译器产生的copy构造函数和 copy assignment操作符(见条款5)。另外也可以包括typedefs，以及如果你大胆违反条款 22(令成员变量为private)而出现的 public 成员变量。
+   隐式接口就完全不同了。它并不基于函数签名式，而是由有效表达式(validexpressions)组成。再次看看doProcessing template一开始的条件，T(w的类型)的隐式接口看来好像有这些约束:
    
    它必须提供一个名为 size 的成员函数，该函数返回一个整数值。
    
    它必须支持一个operator!= 函数，用来比较两个T对象。这里我们假设someNastywidget的类型为T。
    
    操作符重载(operatoroverloading)带来的可能性，这两个约束都不需要满足。是的，T 必须支持 size 成员函数，然而这个函数也可能从 base class 继承而得。这个成员函数不需返回一个整数值，甚至不需返回一个数值类型。就此而言，它甚至不需要返回一个定义有 operator> 的类型！它唯一需要做的是返回一个类型为 x 的对象，而 x 对象加上一个 int(10 的类型)必须能够调用一个 operator>。这个 operator> 不需要非得取得一个类型为 x 的参数不可，因为它也可以取得类型 y 的参数，只要存在一个隐式转换能够将类型 x 的对象转换为类型 y 的对象！同样道理，T 并不需要支持 operator!=，因为以下这样也是可以的：operator!= 接受一个类型为 x 的对象和一个类型为 y 的对象，可被转换为 x 而 someNastywidget 的类型可被转换为 y，这样就可以有效调用operator!=。
-   
+   关于函数 size,oper-ator>,operator&&或operator!=身上的约束条件，我们很难就此说得太多，但整体确认表达式约束条件却很容易。if语句的条件式必须是个布尔表达式，所以无论涉及什么实际类型，无论"w.size()>10&&w!=someNastywidget"导致什么，它都必须与boo1兼容。这是template doProcessing加诸于其类型参数(type parameter)r的隐式接口的一部分。doProcessing要求的其他隐式接口:copy构造函数、normalize和swap也都必须对型对象有效。加诸于 template 参数身上的隐式接口，就像加诸于 class 对象身上的显式接口一样真实，而且两者都在编译期完成检查。就像你无法以一种“与class 提供之显式接口矛盾”的方式来使用对象(代码将通不过编译)，你也无法在template中使用“不支持 template 所要求之隐式接口”的对象(代码一样通不过编译)。
+
    
 
 # 条款42：了解 typename 的双重意义
